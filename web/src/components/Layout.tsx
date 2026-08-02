@@ -47,8 +47,16 @@ export default function Layout() {
   const [sosCount, setSosCount] = useState(0)
   const [open, setOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [pilot, setPilot] = useState(false)
 
   useEffect(() => {
+    // Selama mode simulasi, pemesan bisa menandai lunas sendiri — operator
+    // harus melihat itu, bukan menemukannya lewat selisih kas.
+    fetch(API_URL + '/health')
+      .then((r) => r.json())
+      .then((d) => setPilot(d?.data?.paymentMode === 'simulation'))
+      .catch(() => undefined)
+
     const load = () =>
       api
         .get('/sos', { params: { active: 1, limit: 1 } })
@@ -151,6 +159,15 @@ export default function Layout() {
           </button>
           <span className="font-bold">Sembung Explorer</span>
         </header>
+        {pilot && (
+          <div className="flex items-center gap-2 bg-amber-100 px-5 py-2 text-xs font-semibold text-amber-800">
+            <span>⚠️</span>
+            <span>
+              Mode pembayaran <b>SIMULASI</b> — pemesan dapat menandai pesanannya lunas
+              tanpa membayar. Ubah PAYMENT_MODE ke live sebelum transaksi sungguhan.
+            </span>
+          </div>
+        )}
         <main className="flex-1 overflow-y-auto p-5 lg:p-8">
           <Outlet />
         </main>

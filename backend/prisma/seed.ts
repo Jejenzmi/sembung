@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import {
   ContentCategory,
@@ -71,6 +72,22 @@ async function main() {
 
   const hash = (pw: string) => bcrypt.hashSync(pw, 10);
 
+  // Sandi staf TIDAK boleh punya nilai bawaan yang bisa ditebak: begitu instans
+  // ini terbuka di internet, 'admin123' setara tanpa sandi. Ambil dari env bila
+  // disediakan, kalau tidak buatkan acak lalu cetak sekali di log.
+  const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  const acak = (len = 16) =>
+    Array.from(crypto.randomFillSync(new Uint32Array(len)))
+      .map((n) => ALPHABET[n % ALPHABET.length])
+      .join('');
+
+  const kredensial: [string, string][] = [];
+  const sandiStaf = (envKey: string) => {
+    const pw = process.env[envKey] || acak();
+    kredensial.push([envKey, pw]);
+    return pw;
+  };
+
   const [admin, officer, ranger, visitor, visitor2] = await Promise.all([
     prisma.user.create({
       data: {
@@ -78,7 +95,7 @@ async function main() {
         username: 'admin',
         email: 'admin@sembung.id',
         phone: '081200000001',
-        passwordHash: hash('admin123'),
+        passwordHash: hash(sandiStaf('SEED_ADMIN_PASSWORD')),
         role: Role.ADMIN,
       },
     }),
@@ -88,7 +105,7 @@ async function main() {
         username: 'petugas',
         email: 'petugas@sembung.id',
         phone: '081200000002',
-        passwordHash: hash('petugas123'),
+        passwordHash: hash(sandiStaf('SEED_OFFICER_PASSWORD')),
         role: Role.OFFICER,
       },
     }),
@@ -98,7 +115,7 @@ async function main() {
         username: 'ranger',
         email: 'ranger@sembung.id',
         phone: '081200000003',
-        passwordHash: hash('ranger123'),
+        passwordHash: hash(sandiStaf('SEED_RANGER_PASSWORD')),
         role: Role.RANGER,
       },
     }),
@@ -107,7 +124,7 @@ async function main() {
         name: 'Rizky Pendaki',
         email: 'demo@sembung.id',
         phone: '081200000010',
-        passwordHash: hash('demo123'),
+        passwordHash: hash(sandiStaf('SEED_VISITOR_PASSWORD')),
         role: Role.VISITOR,
         nik: '3214010101990001',
         address: 'Purwakarta, Jawa Barat',
@@ -120,7 +137,7 @@ async function main() {
         name: 'Dewi Anggraeni',
         email: 'dewi@sembung.id',
         phone: '081200000012',
-        passwordHash: hash('demo123'),
+        passwordHash: hash(sandiStaf('SEED_VISITOR_PASSWORD')),
         role: Role.VISITOR,
         emergencyName: 'Bapak Anwar',
         emergencyPhone: '081200000013',
@@ -558,7 +575,15 @@ async function main() {
    Trails      : ${await prisma.trail.count()} (titik: ${await prisma.trailPoint.count()})
    Tiket       : ${tickets.length}   Sewa: ${rentals.length}   Guide: ${guides.length}
    Booking     : ${await prisma.booking.count()}
-   Akun        : admin/admin123 · petugas/petugas123 · ranger/ranger123 · demo@sembung.id/demo123`);
+   Akun        : lihat kredensial di bawah`);
+
+  console.log('');
+  console.log('=========== SANDI AWAL — SIMPAN, TIDAK DITAMPILKAN LAGI ===========');
+  for (const [key, pw] of kredensial) {
+    console.log('  ' + key.padEnd(24) + ' ' + pw);
+  }
+  console.log('  (setel variabel env di atas untuk menentukan sandi sendiri)');
+  console.log('===================================================================');
 }
 
 main()

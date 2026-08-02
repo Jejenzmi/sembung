@@ -41,7 +41,14 @@ app.use(morgan('dev'));
 // terjadi saat respons selesai, jadi req.user sudah terisi oleh authenticate.
 app.use(audit);
 
-app.get('/health', (_req, res) => ok(res, { service: 'sembung-explorer-api', time: new Date() }));
+app.get('/health', (_req, res) =>
+  ok(res, {
+    service: 'sembung-explorer-api',
+    time: new Date(),
+    // Dibuka agar back office bisa memperingatkan operator saat masih pilot.
+    paymentMode: (process.env.PAYMENT_MODE || 'simulation').toLowerCase(),
+  })
+);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/trails', trailRoutes);
