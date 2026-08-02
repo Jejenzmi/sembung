@@ -166,6 +166,20 @@ class CatalogRepository {
     }
   }
 
+  Future<List<Penginapan>> penginapan() async {
+    final list = await api.get('/homestays') as List;
+    return list.map((e) => Penginapan.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<KondisiKawasan?> kondisi() async {
+    try {
+      return KondisiKawasan.fromJson(
+          await api.get('/trails/kondisi/sekarang') as Map<String, dynamic>);
+    } on ApiException {
+      return null;
+    }
+  }
+
   Future<List<Voucher>> vouchers() async {
     final list = await api.get('/vouchers/active') as List;
     return list.map((e) => Voucher.fromJson(e as Map<String, dynamic>)).toList();

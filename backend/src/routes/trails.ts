@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { Difficulty, PointType, Role, TrailStatus } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AppError, created, ok, wrap } from '../lib/http';
-import { authenticate, authorize } from '../middleware/auth';
-import { quotaCalendar, quotaForDate } from '../services/quota';
+import { authenticate, authorize, staffOnly } from '../middleware/auth';
+import { liveOccupancy, quotaCalendar, quotaForDate } from '../services/quota';
 
 const router = Router();
 const adminOnly = [authenticate, authorize(Role.ADMIN)];
@@ -116,6 +116,81 @@ router.get(
   })
 );
 
+/**
+ * Kondisi kawasan sekarang: status jalur, jumlah pendaki yang benar-benar
+ * sedang di atas, sisa kuota hari ini, dan catatan terakhir dari jagawana.
+ * Publik, karena inilah yang paling ingin diketahui calon pendaki.
+ */
+router.get(
+  '/kondisi/sekarang',
+  wrap(async (_req, res) => {
+    const hariIni = new Date();
+    hariIni.setUTCHours(0, 0, 0, 0);
+
+    const [trails, okupansi] = await Promise.all([
+      prisma.trail.findMany({ orderBy: { name: 'asc' } }),
+      liveOccupancy(),
+    ]);
+
+    const perJalur = await Promise.all(
+      trails.map(async (t) => {
+        const kuota = await quotaForDate(t.id, hariIni);
+        const aktif = okupansi.trails.find((o) => o.trailId === t.id);
+        return {
+          id: t.id,
+          nama: t.name,
+          slug: t.slug,
+          status: t.status,
+          kesulitan: t.difficulty,
+          pendakiAktif: aktif?.persons ?? 0,
+          rombonganAktif: aktif?.groups ?? 0,
+          kuotaHarian: t.dailyQuota,
+          sisaKuotaHariIni: kuota?.remaining ?? 0,
+          terpakaiHariIni: kuota?.booked ?? 0,
+          okupansiPersen: t.dailyQuota
+            ? Math.round(((kuota?.booked ?? 0) / t.dailyQuota) * 100)
+            : 0,
+          catatanKondisi: t.conditionNote,
+          catatanPada: t.conditionAt,
+        };
+      })
+    );
+
+    return ok(res, {
+      diperbaruiPada: new Date(),
+      totalPendakiAktif: okupansi.totalPersons,
+      totalRombonganAktif: okupansi.totalGroups,
+      jalur: perJalur,
+    });
+  })
+);
+
+/** Jagawana memperbarui catatan kondisi jalur dari lapangan. */
+router.put(
+  '/:id/kondisi',
+  authenticate,
+  staffOnly,
+  wrap(async (req, res) => {
+    const body = z
+      .object({
+        status: z.nativeEnum(TrailStatus).optional(),
+        conditionNote: z.string().max(500).optional(),
+      })
+      .parse(req.body);
+
+    const trail = await prisma.trail.update({
+      where: { id: req.params.id },
+      data: {
+        ...(body.status ? { status: body.status } : {}),
+        ...(body.conditionNote !== undefined
+          ? { conditionNote: body.conditionNote, conditionAt: new Date() }
+          : {}),
+      },
+    });
+    return ok(res, trail, 'Kondisi jalur diperbarui');
+  })
+);
+
 const trailSchema = z.object({
   code: z.string().min(2),
   name: z.string().min(3),
@@ -129,6 +204,7 @@ const trailSchema = z.object({
   dailyQuota: z.number().int().positive(),
   description: z.string().optional(),
   imageUrl: z.string().optional(),
+  conditionNote: z.string().optional(),
 });
 
 router.post(

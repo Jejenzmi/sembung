@@ -970,3 +970,143 @@ class CuacaKawasan extends Equatable {
   @override
   List<Object?> get props => [desa, sekarang, peringatan];
 }
+
+class Penginapan extends Equatable {
+  final String id;
+  final String code;
+  final String name;
+  final String type;
+  final String? description;
+  final String? address;
+  final String? phone;
+  final int capacity;
+  final int units;
+  final int pricePerNight;
+  final List<String> facilities;
+  final String? imageUrl;
+  final double rating;
+  final double? distanceKm;
+
+  const Penginapan({
+    required this.id,
+    required this.code,
+    required this.name,
+    required this.type,
+    this.description,
+    this.address,
+    this.phone,
+    required this.capacity,
+    required this.units,
+    required this.pricePerNight,
+    this.facilities = const [],
+    this.imageUrl,
+    this.rating = 5,
+    this.distanceKm,
+  });
+
+  factory Penginapan.fromJson(Map<String, dynamic> j) => Penginapan(
+        id: j['id'] as String,
+        code: j['code'] as String,
+        name: j['name'] as String,
+        type: j['type'] as String,
+        description: j['description'] as String?,
+        address: j['address'] as String?,
+        phone: j['phone'] as String?,
+        capacity: _int(j['capacity']),
+        units: _int(j['units']),
+        pricePerNight: _int(j['pricePerNight']),
+        facilities:
+            ((j['facilities'] as List?) ?? []).map((e) => e.toString()).toList(),
+        imageUrl: j['imageUrl'] as String?,
+        rating: _dbl(j['rating']),
+        distanceKm: j['distanceKm'] == null ? null : _dbl(j['distanceKm']),
+      );
+
+  String get labelJenis => switch (type) {
+        'VILLA' => 'Vila',
+        'GLAMPING' => 'Glamping',
+        'CAMPGROUND' => 'Lahan Kemah',
+        _ => 'Homestay',
+      };
+
+  String get lambang => switch (type) {
+        'VILLA' => '🏡',
+        'GLAMPING' => '⛺',
+        'CAMPGROUND' => '🏕️',
+        _ => '🏠',
+      };
+
+  @override
+  List<Object?> get props => [id, units];
+}
+
+class KondisiJalur extends Equatable {
+  final String id;
+  final String nama;
+  final String slug;
+  final String status;
+  final int pendakiAktif;
+  final int rombonganAktif;
+  final int kuotaHarian;
+  final int sisaKuotaHariIni;
+  final int okupansiPersen;
+  final String? catatanKondisi;
+
+  const KondisiJalur({
+    required this.id,
+    required this.nama,
+    required this.slug,
+    required this.status,
+    required this.pendakiAktif,
+    required this.rombonganAktif,
+    required this.kuotaHarian,
+    required this.sisaKuotaHariIni,
+    required this.okupansiPersen,
+    this.catatanKondisi,
+  });
+
+  factory KondisiJalur.fromJson(Map<String, dynamic> j) => KondisiJalur(
+        id: j['id'] as String,
+        nama: j['nama'] as String,
+        slug: j['slug'] as String,
+        status: j['status'] as String,
+        pendakiAktif: _int(j['pendakiAktif']),
+        rombonganAktif: _int(j['rombonganAktif']),
+        kuotaHarian: _int(j['kuotaHarian']),
+        sisaKuotaHariIni: _int(j['sisaKuotaHariIni']),
+        okupansiPersen: _int(j['okupansiPersen']),
+        catatanKondisi: j['catatanKondisi'] as String?,
+      );
+
+  String get labelStatus => switch (status) {
+        'OPEN' => 'Dibuka',
+        'LIMITED' => 'Terbatas',
+        _ => 'Ditutup',
+      };
+
+  @override
+  List<Object?> get props => [id, pendakiAktif, sisaKuotaHariIni];
+}
+
+class KondisiKawasan extends Equatable {
+  final int totalPendakiAktif;
+  final int totalRombonganAktif;
+  final List<KondisiJalur> jalur;
+
+  const KondisiKawasan({
+    required this.totalPendakiAktif,
+    required this.totalRombonganAktif,
+    required this.jalur,
+  });
+
+  factory KondisiKawasan.fromJson(Map<String, dynamic> j) => KondisiKawasan(
+        totalPendakiAktif: _int(j['totalPendakiAktif']),
+        totalRombonganAktif: _int(j['totalRombonganAktif']),
+        jalur: ((j['jalur'] as List?) ?? [])
+            .map((e) => KondisiJalur.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
+  @override
+  List<Object?> get props => [totalPendakiAktif, jalur];
+}

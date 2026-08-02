@@ -76,10 +76,12 @@ class BookingScreen extends StatelessWidget {
               const _RentalsSection(),
               const _StepLabel('5', 'Pemandu & Porter (opsional)'),
               const _GuidesSection(),
-              const _StepLabel('6', 'Kode Voucher'),
+              const _StepLabel('6', 'Menginap (opsional)'),
+              const _PenginapanSection(),
+              const _StepLabel('7', 'Kode Voucher'),
               const _VoucherSection(),
               if (quote != null) ...[
-                const _StepLabel('7', 'Ringkasan Biaya'),
+                const _StepLabel('8', 'Ringkasan Biaya'),
                 _SummarySection(quote: quote),
               ],
             ],
@@ -495,6 +497,90 @@ class _GuidesSection extends StatelessWidget {
                 Icon(
                   selected ? Icons.check_circle : Icons.circle_outlined,
                   color: selected ? AppColors.moss : const Color(0xFFCBD5E1),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+/// Penginapan dihitung per MALAM, jadi perjalanan sehari tidak menagih menginap.
+class _PenginapanSection extends StatelessWidget {
+  const _PenginapanSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<BookingBloc>().state;
+    final malam = (state.days - 1).clamp(0, 99);
+
+    if (state.penginapanKatalog.isEmpty) {
+      return const AppCard(
+        child: Text('Belum ada penginapan terdaftar.',
+            style: TextStyle(fontSize: 13, color: AppColors.muted)),
+      );
+    }
+
+    if (malam == 0) {
+      return const AppCard(
+        child: Row(
+          children: [
+            Text('🌙', style: TextStyle(fontSize: 22)),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Pendakian Anda pulang di hari yang sama, jadi belum perlu menginap. '
+                'Ubah tanggal selesai bila ingin menambah penginapan.',
+                style: TextStyle(fontSize: 12.5, height: 1.5),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: state.penginapanKatalog.map((p) {
+        final qty = state.penginapan[p.id] ?? 0;
+        final habis = p.units <= 0;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: AppCard(
+            child: Row(
+              children: [
+                NetImage(p.imageUrl, height: 54, width: 54, radius: 14),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${p.lambang} ${p.name}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 14)),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${rupiah(p.pricePerNight)} × $malam malam · '
+                        '${p.capacity} orang/unit',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: habis ? AppColors.danger : AppColors.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _Stepper(
+                  value: qty,
+                  max: p.units,
+                  onChanged: habis
+                      ? null
+                      : (v) => context
+                          .read<BookingBloc>()
+                          .add(BookingPenginapanChanged(p.id, v)),
                 ),
               ],
             ),

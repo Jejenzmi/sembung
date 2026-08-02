@@ -201,31 +201,13 @@ class _ShalatScreenState extends State<ShalatScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
-          AppCard(
-            color: AppColors.mossLight,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(hariTanggal(_tanggal),
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-                const SizedBox(height: 4),
-                Text(
-                  _dariGps
-                      ? 'Posisi Anda · ${_lintang.toStringAsFixed(4)}, ${_bujur.toStringAsFixed(4)} · ${_mdpl.round()} mdpl'
-                      : 'Basecamp Pasanggrahan · ${_mdpl.round()} mdpl (GPS belum aktif)',
-                  style: const TextStyle(fontSize: 12, color: AppColors.mossDark),
-                ),
-                if (berikut != null) ...[
-                  const SizedBox(height: 14),
-                  Text('${berikut.nama} · ${DateTime.now().isBefore(berikut.waktu) ? _sisa(berikut.waktu) : ''}',
-                      style: const TextStyle(fontSize: 13, color: AppColors.mossDark)),
-                  Text(
-                    '${berikut.waktu.hour.toString().padLeft(2, '0')}:${berikut.waktu.minute.toString().padLeft(2, '0')}',
-                    style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800),
-                  ),
-                ],
-              ],
-            ),
+          _HeroWaktu(
+            tanggal: _tanggal,
+            berikut: berikut,
+            sisa: berikut == null ? '' : _sisa(berikut.waktu),
+            lokasi: _dariGps
+                ? 'Posisi Anda · ${_mdpl.round()} mdpl'
+                : 'Basecamp Pasanggrahan · ${_mdpl.round()} mdpl',
           ),
 
           const SizedBox(height: 14),
@@ -258,40 +240,27 @@ class _ShalatScreenState extends State<ShalatScreen> {
           ),
 
           const SizedBox(height: 14),
-          ...jadwal.entries.map((e) {
-            final aktif = berikut?.nama == e.key;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: AppCard(
-                color: aktif ? AppColors.mossLight : Colors.white,
-                child: Row(
-                  children: [
-                    Text(_ikon[e.key] ?? '🕌', style: const TextStyle(fontSize: 22)),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        e.key,
-                        style: TextStyle(
-                          fontWeight: aktif ? FontWeight.w800 : FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      e.value == null
-                          ? '-'
-                          : '${e.value!.hour.toString().padLeft(2, '0')}:${e.value!.minute.toString().padLeft(2, '0')}',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: aktif ? AppColors.mossDark : AppColors.ink,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
+          AppCard(
+            child: Column(
+              children: jadwal.entries.map((e) {
+                final aktif = berikut?.nama == e.key;
+                final lewat = e.value != null &&
+                    _hariIni &&
+                    e.value!.isBefore(DateTime.now());
+                final terakhir = e.key == jadwal.keys.last;
+                return _BarisWaktu(
+                  ikon: _ikon[e.key] ?? '🕌',
+                  nama: e.key,
+                  jam: e.value == null
+                      ? '-'
+                      : '${e.value!.hour.toString().padLeft(2, '0')}:${e.value!.minute.toString().padLeft(2, '0')}',
+                  aktif: aktif,
+                  lewat: lewat,
+                  terakhir: terakhir,
+                );
+              }).toList(),
+            ),
+          ),
 
           const SizedBox(height: 6),
           AppCard(
@@ -387,6 +356,207 @@ class _ShalatScreenState extends State<ShalatScreen> {
                       : 'Simpan 3 Bulan untuk Offline'),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+/// Hero gelap bergaya langit malam: waktu berikutnya dibuat sebesar mungkin
+/// karena itulah satu-satunya angka yang dicari pengguna saat membuka layar ini.
+class _HeroWaktu extends StatelessWidget {
+  const _HeroWaktu({
+    required this.tanggal,
+    required this.berikut,
+    required this.sisa,
+    required this.lokasi,
+  });
+
+  final DateTime tanggal;
+  final ({String nama, DateTime waktu})? berikut;
+  final String sisa;
+  final String lokasi;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1B3A5C), Color(0xFF2F5D7C)],
+        ),
+      ),
+      child: Stack(
+        children: [
+          const Positioned(
+            right: -6,
+            top: -10,
+            child: Opacity(
+              opacity: 0.16,
+              child: Text('🌙', style: TextStyle(fontSize: 96)),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(hariTanggal(tanggal),
+                  style: const TextStyle(
+                      color: Color(0xFFBFD6E8),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600)),
+              const SizedBox(height: 18),
+              if (berikut != null) ...[
+                Text('Menuju ${berikut!.nama}',
+                    style: const TextStyle(
+                        color: Colors.white70, fontSize: 13.5)),
+                const SizedBox(height: 2),
+                Text(
+                  '${berikut!.waktu.hour.toString().padLeft(2, '0')}:'
+                  '${berikut!.waktu.minute.toString().padLeft(2, '0')}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 52,
+                    fontWeight: FontWeight.w800,
+                    height: 1.05,
+                    letterSpacing: -1.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.16),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Text(sisa,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700)),
+                ),
+              ] else
+                const Text('Seluruh waktu salat hari ini telah berlalu',
+                    style: TextStyle(
+                        color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  const Icon(Icons.place_outlined,
+                      size: 14, color: Color(0xFFBFD6E8)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(lokasi,
+                        style: const TextStyle(
+                            color: Color(0xFFBFD6E8), fontSize: 11.5)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Satu baris pada garis waktu salat. Titik dan garis penghubung membuat urutan
+/// waktu terbaca sekilas, dan yang sudah lewat sengaja diredupkan.
+class _BarisWaktu extends StatelessWidget {
+  const _BarisWaktu({
+    required this.ikon,
+    required this.nama,
+    required this.jam,
+    required this.aktif,
+    required this.lewat,
+    required this.terakhir,
+  });
+
+  final String ikon;
+  final String nama;
+  final String jam;
+  final bool aktif;
+  final bool lewat;
+  final bool terakhir;
+
+  @override
+  Widget build(BuildContext context) {
+    final warnaTeks = aktif
+        ? AppColors.mossDark
+        : lewat
+            ? AppColors.muted
+            : AppColors.ink;
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Column(
+            children: [
+              Container(
+                height: 11,
+                width: 11,
+                margin: const EdgeInsets.only(top: 13),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: aktif
+                      ? AppColors.moss
+                      : lewat
+                          ? const Color(0xFFCBD5E1)
+                          : Colors.white,
+                  border: Border.all(
+                    color: aktif ? AppColors.moss : const Color(0xFFCBD5E1),
+                    width: 2,
+                  ),
+                ),
+              ),
+              if (!terakhir)
+                Expanded(
+                  child: Container(width: 2, color: const Color(0xFFE2E8F0)),
+                ),
+            ],
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Container(
+              margin: EdgeInsets.only(bottom: terakhir ? 0 : 4),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              decoration: BoxDecoration(
+                color: aktif ? AppColors.mossLight : Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  Opacity(
+                    opacity: lewat ? 0.45 : 1,
+                    child: Text(ikon, style: const TextStyle(fontSize: 19)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(nama,
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight:
+                              aktif ? FontWeight.w800 : FontWeight.w600,
+                          color: warnaTeks,
+                        )),
+                  ),
+                  Text(jam,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: warnaTeks,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      )),
+                ],
+              ),
             ),
           ),
         ],

@@ -62,6 +62,14 @@ class BookingRentalChanged extends BookingEvent {
   List<Object?> get props => [rentalId, qty];
 }
 
+class BookingPenginapanChanged extends BookingEvent {
+  final String id;
+  final int qty;
+  const BookingPenginapanChanged(this.id, this.qty);
+  @override
+  List<Object?> get props => [id, qty];
+}
+
 class BookingGuideToggled extends BookingEvent {
   final String guideId;
   const BookingGuideToggled(this.guideId);
@@ -112,6 +120,8 @@ class BookingState extends Equatable {
   final Map<String, int> tickets;
   final Map<String, int> rentals;
   final Set<String> guides;
+  final Map<String, int> penginapan;
+  final List<Penginapan> penginapanKatalog;
 
   final List<TicketType> ticketCatalog;
   final List<RentalItem> rentalCatalog;
@@ -136,6 +146,8 @@ class BookingState extends Equatable {
     this.tickets = const {},
     this.rentals = const {},
     this.guides = const {},
+    this.penginapan = const {},
+    this.penginapanKatalog = const [],
     this.ticketCatalog = const [],
     this.rentalCatalog = const [],
     this.guideCatalog = const [],
@@ -174,6 +186,8 @@ class BookingState extends Equatable {
     Map<String, int>? tickets,
     Map<String, int>? rentals,
     Set<String>? guides,
+    Map<String, int>? penginapan,
+    List<Penginapan>? penginapanKatalog,
     List<TicketType>? ticketCatalog,
     List<RentalItem>? rentalCatalog,
     List<Guide>? guideCatalog,
@@ -197,6 +211,8 @@ class BookingState extends Equatable {
         tickets: tickets ?? this.tickets,
         rentals: rentals ?? this.rentals,
         guides: guides ?? this.guides,
+        penginapan: penginapan ?? this.penginapan,
+        penginapanKatalog: penginapanKatalog ?? this.penginapanKatalog,
         ticketCatalog: ticketCatalog ?? this.ticketCatalog,
         rentalCatalog: rentalCatalog ?? this.rentalCatalog,
         guideCatalog: guideCatalog ?? this.guideCatalog,
@@ -220,6 +236,8 @@ class BookingState extends Equatable {
         tickets,
         rentals,
         guides,
+        penginapan,
+        penginapanKatalog,
         ticketCatalog,
         rentalCatalog,
         guideCatalog,
@@ -246,6 +264,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     on<BookingTicketChanged>(_onTicket);
     on<BookingRentalChanged>(_onRental);
     on<BookingGuideToggled>(_onGuide);
+    on<BookingPenginapanChanged>(_onPenginapan);
     on<BookingQuoteRequested>(_onQuote);
     on<BookingSubmitted>(_onSubmit);
     on<BookingPaymentRequested>(_onPay);
@@ -271,6 +290,10 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
             .map((e) => {'id': e.key, 'qty': e.value})
             .toList(),
         'guides': state.guides.map((id) => {'id': id, 'qty': 1}).toList(),
+        'homestays': state.penginapan.entries
+            .where((e) => e.value > 0)
+            .map((e) => {'id': e.key, 'qty': e.value})
+            .toList(),
         if (state.voucherCode.isNotEmpty) 'voucherCode': state.voucherCode,
       };
 
@@ -302,6 +325,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         _catalog.rentals(),
         _catalog.guides(),
         _catalog.quotaCalendar(event.trail.id, days: 45),
+        _catalog.penginapan(),
       ]);
       final tickets = results[0] as List<TicketType>;
 
@@ -318,6 +342,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         rentalCatalog: results[1] as List<RentalItem>,
         guideCatalog: results[2] as List<Guide>,
         quota: results[3] as List<QuotaDay>,
+        penginapanKatalog: results[4] as List<Penginapan>,
         tickets: defaults,
         loading: false,
       ));
@@ -378,6 +403,17 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
       next[event.rentalId] = event.qty;
     }
     emit(state.copyWith(rentals: next));
+    add(const BookingQuoteRequested());
+  }
+
+  void _onPenginapan(BookingPenginapanChanged event, Emitter<BookingState> emit) {
+    final next = {...state.penginapan};
+    if (event.qty <= 0) {
+      next.remove(event.id);
+    } else {
+      next[event.id] = event.qty;
+    }
+    emit(state.copyWith(penginapan: next));
     add(const BookingQuoteRequested());
   }
 

@@ -66,6 +66,14 @@ enum ItemRef {
   TICKET
   RENTAL
   GUIDE
+  HOMESTAY
+}
+
+enum JenisPenginapan {
+  HOMESTAY
+  VILLA
+  GLAMPING
+  CAMPGROUND
 }
 
 enum PaymentMethod {
@@ -191,6 +199,9 @@ model Trail {
   dailyQuota      Int         @default(100)
   description     String?
   imageUrl        String?
+  /// Catatan kondisi terkini dari jagawana (longsor, jembatan rusak, dsb).
+  conditionNote   String?
+  conditionAt     DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
@@ -199,6 +210,7 @@ model Trail {
   bookings        Booking[]
   reviews         Review[]
   vouchers        Voucher[]
+  homestays       Homestay[]
 }
 
 model TrailPoint {
@@ -241,6 +253,35 @@ model TicketType {
   isActive    Boolean        @default(true)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
+}
+
+/// Penginapan di sekitar basecamp: homestay warga, vila, glamping, atau lahan
+/// kemah berpemandu. Dipesan bersama tiket dalam satu transaksi.
+model Homestay {
+  id          String          @id @default(uuid())
+  code        String          @unique
+  name        String
+  type        JenisPenginapan @default(HOMESTAY)
+  description String?
+  address     String?
+  phone       String?
+  lat         Float?
+  lng         Float?
+  /// Kapasitas per unit dan jumlah unit yang tersedia.
+  capacity    Int             @default(4)
+  units       Int             @default(1)
+  pricePerNight Int
+  facilities  String[]        @default([])
+  imageUrl    String?
+  rating      Float           @default(5)
+  distanceKm  Float?
+  trailId     String?
+  trail       Trail?          @relation(fields: [trailId], references: [id])
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([isActive, type])
 }
 
 model RentalItem {

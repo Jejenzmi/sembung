@@ -83,9 +83,16 @@ describe('Kotak masuk pendaki', () => {
 
   it('memisahkan notifikasi staf dari kotak masuk pendaki', async () => {
     await kirimSos();
+    // Kipas notifikasi staf berjalan setelah respons dikirim, jadi ditunggu
+    // alih-alih diperiksa seketika.
+    const jumlahWa = await tunggu(
+      () => prisma.notification.count({ where: { channel: 'WHATSAPP' } }),
+      (n) => n > 0
+    );
+    expect(jumlahWa).toBeGreaterThan(0);
+
+    // Peringatan staf memakai kanal WhatsApp/webhook, bukan kotak masuk INAPP.
     const res = await api().get('/api/notifications').set(bearer(f.admin.token));
-    // Peringatan SOS untuk staf memakai kanal WhatsApp/webhook, bukan INAPP.
     expect(res.body.data).toHaveLength(0);
-    expect(await prisma.notification.count({ where: { channel: 'WHATSAPP' } })).toBeGreaterThan(0);
   });
 });

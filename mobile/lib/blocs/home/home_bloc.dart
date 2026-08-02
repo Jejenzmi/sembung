@@ -27,6 +27,8 @@ class HomeState extends Equatable {
   final Capacity? capacity;
   final List<Booking> activeBookings;
   final CuacaKawasan? cuaca;
+  final KondisiKawasan? kondisi;
+  final List<Penginapan> penginapan;
   final String? error;
 
   const HomeState({
@@ -36,12 +38,14 @@ class HomeState extends Equatable {
     this.capacity,
     this.activeBookings = const [],
     this.cuaca,
+    this.kondisi,
+    this.penginapan = const [],
     this.error,
   });
 
   @override
   List<Object?> get props =>
-      [status, trails, contents, capacity, activeBookings, cuaca, error];
+      [status, trails, contents, capacity, activeBookings, cuaca, kondisi, penginapan, error];
 }
 
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
@@ -60,6 +64,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       capacity: state.capacity,
       activeBookings: state.activeBookings,
       cuaca: state.cuaca,
+      kondisi: state.kondisi,
+      penginapan: state.penginapan,
     ));
     try {
       // One round trip per section, fired together to keep the pull-to-refresh
@@ -72,6 +78,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             ? _bookings.mine()
             : Future<List<Booking>>.value(const []),
         _catalog.cuaca(),
+        _catalog.kondisi(),
+        _catalog.penginapan(),
       ]);
 
       final all = results[3] as List<Booking>;
@@ -81,6 +89,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         contents: results[1] as List<ContentItem>,
         capacity: results[2] as Capacity,
         cuaca: results[4] as CuacaKawasan?,
+        kondisi: results[5] as KondisiKawasan?,
+        penginapan: results[6] as List<Penginapan>,
         activeBookings: all
             .where((b) =>
                 b.status == 'PAID' ||
@@ -96,6 +106,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         capacity: state.capacity,
         activeBookings: state.activeBookings,
         cuaca: state.cuaca,
+        kondisi: state.kondisi,
+        penginapan: state.penginapan,
         error: e.toString(),
       ));
     }

@@ -13,6 +13,7 @@ import 'epass_screen.dart';
 import 'inbox_screen.dart';
 import 'kompas_screen.dart';
 import 'shalat_screen.dart';
+import 'penginapan_screen.dart';
 import 'trail_detail_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -52,7 +53,13 @@ class HomeScreen extends StatelessWidget {
 
             return CustomScrollView(
               slivers: [
-                SliverToBoxAdapter(child: _Header(name: user?.name ?? 'Pendaki')),
+                SliverToBoxAdapter(
+                  child: _Hero(
+                    name: user?.name.split(' ').first ?? 'Pendaki',
+                    kondisi: state.kondisi,
+                    cuaca: state.cuaca,
+                  ),
+                ),
                 if (user == null) const SliverToBoxAdapter(child: SpandukTamu()),
                 if (state.activeBookings.isNotEmpty)
                   SliverToBoxAdapter(
@@ -63,6 +70,10 @@ class HomeScreen extends StatelessWidget {
                   SliverToBoxAdapter(child: _CuacaCard(cuaca: state.cuaca!)),
                 if (state.capacity != null)
                   SliverToBoxAdapter(child: _CapacityCard(capacity: state.capacity!)),
+                if (state.kondisi != null)
+                  SliverToBoxAdapter(
+                    child: _KondisiJalurSeksi(kondisi: state.kondisi!),
+                  ),
                 const SliverToBoxAdapter(
                   child: SectionTitle('Jalur Pendakian'),
                 ),
@@ -78,6 +89,24 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (state.penginapan.isNotEmpty) ...[
+                  const SliverToBoxAdapter(
+                    child: SectionTitle('Menginap di Sekitar Basecamp'),
+                  ),
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 214,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: state.penginapan.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 14),
+                        itemBuilder: (_, i) =>
+                            _KartuPenginapan(item: state.penginapan[i]),
+                      ),
+                    ),
+                  ),
+                ],
                 const SliverToBoxAdapter(
                   child: SectionTitle('Informasi & Sejarah Lokal'),
                 ),
@@ -99,14 +128,21 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.name});
+/// Hero beranda: bukan sekadar sapaan, tetapi ringkasan kondisi kawasan hari
+/// ini — berapa pendaki yang benar-benar sedang di atas, dan sisa kuota.
+class _Hero extends StatelessWidget {
+  const _Hero({required this.name, this.kondisi, this.cuaca});
   final String name;
+  final KondisiKawasan? kondisi;
+  final CuacaKawasan? cuaca;
 
   @override
   Widget build(BuildContext context) {
+    final k = kondisi;
+    final kini = cuaca?.sekarang;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 60, 20, 26),
+      padding: const EdgeInsets.fromLTRB(20, 58, 20, 22),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -114,57 +150,151 @@ class _Header extends StatelessWidget {
           colors: [AppColors.mossDark, AppColors.moss],
         ),
         borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(28),
-          bottomRight: Radius.circular(28),
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Halo, $name 👋',
+                        style: const TextStyle(
+                            color: Color(0xFFC2D8BD), fontSize: 13)),
+                    const SizedBox(height: 3),
+                    const Text('Gunung Sembung',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 27,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                        )),
+                    const SizedBox(height: 2),
+                    const Text('Sanggabuana · Purwakarta, Jawa Barat',
+                        style: TextStyle(color: Color(0x99E0EBDD), fontSize: 11.5)),
+                  ],
+                ),
+              ),
+              if (kini != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(kini.lambang, style: const TextStyle(fontSize: 30)),
+                    Text('${kini.suhu}°C',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              const SizedBox(width: 6),
+              _TombolKotakMasuk(),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.13),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Row(
               children: [
-                const Text(
-                  'Selamat datang di',
-                  style: TextStyle(color: Color(0xFFC2D8BD), fontSize: 13),
+                _Angka(
+                  nilai: '${k?.totalPendakiAktif ?? 0}',
+                  label: 'Sedang mendaki',
+                  lambang: '🥾',
                 ),
-                const SizedBox(height: 2),
-                const Text(
-                  'Gunung Sembung',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                  ),
+                _Pemisah(),
+                _Angka(
+                  nilai: '${k?.totalRombonganAktif ?? 0}',
+                  label: 'Rombongan aktif',
+                  lambang: '👥',
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Halo, $name 👋',
-                  style: const TextStyle(color: Color(0xFFE0EBDD), fontSize: 13.5),
+                _Pemisah(),
+                _Angka(
+                  nilai: k == null
+                      ? '—'
+                      : '${k.jalur.fold<int>(0, (a, j) => a + j.sisaKuotaHariIni)}',
+                  label: 'Sisa kuota',
+                  lambang: '🎫',
                 ),
               ],
             ),
-          ),
-          IconButton(
-            tooltip: 'Kotak masuk',
-            icon: const Icon(Icons.notifications_outlined,
-                color: Colors.white, size: 28),
-            onPressed: () async {
-              if (!await wajibMasuk(context,
-                  alasan: 'Kotak masuk berisi kabar penanganan darurat dan '
-                      'pengingat pendakian Anda.')) {
-                return;
-              }
-              if (!context.mounted) return;
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const InboxScreen()),
-              );
-            },
           ),
         ],
       ),
     );
   }
+}
+
+/// Pintasan kotak masuk. Untuk tamu, ketukan mengarah ke ajakan masuk.
+class _TombolKotakMasuk extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withOpacity(0.13),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () async {
+          if (!await wajibMasuk(context,
+              alasan: 'Kotak masuk berisi kabar penanganan darurat dan '
+                  'pengingat pendakian Anda.')) {
+            return;
+          }
+          if (!context.mounted) return;
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const InboxScreen()),
+          );
+        },
+        child: const Padding(
+          padding: EdgeInsets.all(10),
+          child: Icon(Icons.notifications_outlined,
+              color: Colors.white, size: 22),
+        ),
+      ),
+    );
+  }
+}
+
+class _Angka extends StatelessWidget {
+  const _Angka({required this.nilai, required this.label, required this.lambang});
+  final String nilai;
+  final String label;
+  final String lambang;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+        child: Column(
+          children: [
+            Text(lambang, style: const TextStyle(fontSize: 17)),
+            const SizedBox(height: 5),
+            Text(nilai,
+                style: const TextStyle(
+                    color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 1),
+            Text(label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xB3E0EBDD), fontSize: 10.5)),
+          ],
+        ),
+      );
+}
+
+class _Pemisah extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Container(
+        height: 38,
+        width: 1,
+        color: Colors.white.withOpacity(0.16),
+      );
 }
 
 class _ActiveBookingCard extends StatelessWidget {
@@ -536,6 +666,202 @@ class _TrailCard extends StatelessWidget {
                           color: const Color(0xFFB45309)),
                     ],
                   ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Kondisi tiap jalur hari ini: status, pendaki yang sedang di atas, sisa
+/// kuota, dan catatan terakhir jagawana — informasi yang menentukan apakah
+/// seseorang jadi naik atau tidak.
+class _KondisiJalurSeksi extends StatelessWidget {
+  const _KondisiJalurSeksi({required this.kondisi});
+  final KondisiKawasan kondisi;
+
+  Color _warna(String status) => switch (status) {
+        'OPEN' => AppColors.moss,
+        'LIMITED' => AppColors.ember,
+        _ => AppColors.danger,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SectionTitle('Kondisi Jalur Hari Ini'),
+        ...kondisi.jalur.map((j) {
+          final warna = _warna(j.status);
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        height: 10,
+                        width: 10,
+                        decoration: BoxDecoration(
+                          color: warna,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: warna.withOpacity(0.35), blurRadius: 7)
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(j.nama,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w800, fontSize: 15)),
+                      ),
+                      Pill(j.labelStatus,
+                          color: warna,
+                          background: warna.withOpacity(0.12)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _Metrik(
+                          nilai: '${j.pendakiAktif}',
+                          label: 'sedang di atas',
+                        ),
+                      ),
+                      Expanded(
+                        child: _Metrik(
+                          nilai: '${j.sisaKuotaHariIni}',
+                          label: 'sisa kuota',
+                        ),
+                      ),
+                      Expanded(
+                        child: _Metrik(
+                          nilai: '${j.okupansiPersen}%',
+                          label: 'terisi',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: (j.okupansiPersen / 100).clamp(0, 1),
+                      minHeight: 6,
+                      backgroundColor: const Color(0xFFE2E8F0),
+                      color: warna,
+                    ),
+                  ),
+                  if (j.catatanKondisi != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(11),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('📋', style: TextStyle(fontSize: 14)),
+                          const SizedBox(width: 9),
+                          Expanded(
+                            child: Text(
+                              j.catatanKondisi!,
+                              style: const TextStyle(
+                                  fontSize: 12, height: 1.5, color: Colors.black87),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class _Metrik extends StatelessWidget {
+  const _Metrik({required this.nilai, required this.label});
+  final String nilai;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(nilai,
+              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+          Text(label,
+              style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+        ],
+      );
+}
+
+class _KartuPenginapan extends StatelessWidget {
+  const _KartuPenginapan({required this.item});
+  final Penginapan item;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 216,
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => PenginapanScreen(sorot: item.id)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                NetImage(item.imageUrl, height: 104, width: 216, radius: 20),
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: Pill('${item.lambang} ${item.labelJenis}',
+                      background: Colors.white),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(13, 11, 13, 13),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 14)),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${item.capacity} orang'
+                    '${item.distanceKm != null ? ' · ${item.distanceKm} km dari basecamp' : ''}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11.5, color: AppColors.muted),
+                  ),
+                  const SizedBox(height: 8),
+                  Text('${rupiah(item.pricePerNight)} / malam',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13.5,
+                          color: AppColors.moss)),
                 ],
               ),
             ),

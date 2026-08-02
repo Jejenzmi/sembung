@@ -89,6 +89,13 @@ generik. Perkenalan hanya muncul sekali; keluar akun tidak mengulanginya.
 * **E-Pass tetap terbaca offline** — salinan terakhir disimpan di perangkat, karena
   justru di pos gerbang sinyal sering lemah.
 * **Perjalanan** — booking aktif & riwayat, pembatalan, ulasan setelah selesai.
+* **Kondisi kawasan langsung** — beranda menampilkan berapa pendaki yang benar-benar
+  sedang di atas, jumlah rombongan aktif, sisa kuota hari ini per jalur, tingkat
+  keterisian, serta catatan kondisi terakhir dari jagawana (longsor, sumber air,
+  jalur licin). Diperbarui lewat `PUT /api/trails/:id/kondisi` oleh petugas lapangan.
+* **Menginap** — homestay warga, vila, glamping, dan lahan kemah di sekitar basecamp.
+  Dipesan **menyatu dengan E-Pass**, dihitung per malam, sehingga tiket, sewa alat,
+  pemandu, dan penginapan tergabung dalam satu pembayaran dan satu bukti.
 * **Informasi** — sejarah lokal Sanggabuana, tata tertib, cuaca, agenda event.
 * **Jadwal Salat** — memakai **jadwal resmi Kementerian Agama RI** (api.myquran.com,
   KAB. PURWAKARTA), dengan Aladhan metode 20 sebagai cadangan. Diunduh sebulan penuh

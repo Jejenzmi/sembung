@@ -30,6 +30,7 @@ export interface DraftBooking {
   tickets: DraftLine[];
   rentals?: DraftLine[];
   guides?: DraftLine[];
+  homestays?: DraftLine[];
   voucherCode?: string;
   notes?: string;
 }
@@ -110,6 +111,29 @@ export async function priceDraft(draft: DraftBooking) {
       days,
       unitPrice: g.ratePerDay,
       amount: g.ratePerDay * Math.max(1, line.qty) * days,
+    });
+  }
+
+  const homestayIds = (draft.homestays ?? []).map((h) => h.id);
+  const homestays = homestayIds.length
+    ? await prisma.homestay.findMany({ where: { id: { in: homestayIds }, isActive: true } })
+    : [];
+  for (const line of draft.homestays ?? []) {
+    const h = homestays.find((x) => x.id === line.id);
+    if (!h) throw new AppError('Penginapan tidak ditemukan atau nonaktif');
+    if (line.qty < 1) continue;
+    if (line.qty > h.units)
+      throw new AppError(`${h.name} hanya tersedia ${h.units} unit`);
+    // Menginap dihitung per MALAM: perjalanan 3 hari berarti 2 malam.
+    const malam = Math.max(1, days - 1);
+    lines.push({
+      refType: ItemRef.HOMESTAY,
+      refId: h.id,
+      name: `Menginap ${h.name}`,
+      qty: line.qty,
+      days: malam,
+      unitPrice: h.pricePerNight,
+      amount: h.pricePerNight * line.qty * malam,
     });
   }
 
