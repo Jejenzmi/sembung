@@ -7,6 +7,7 @@ import '../../core/formatters.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../widgets/common.dart';
+import '../widgets/wajib_masuk.dart';
 import 'content_detail_screen.dart';
 import 'epass_screen.dart';
 import 'inbox_screen.dart';
@@ -52,6 +53,7 @@ class HomeScreen extends StatelessWidget {
             return CustomScrollView(
               slivers: [
                 SliverToBoxAdapter(child: _Header(name: user?.name ?? 'Pendaki')),
+                if (user == null) const SliverToBoxAdapter(child: SpandukTamu()),
                 if (state.activeBookings.isNotEmpty)
                   SliverToBoxAdapter(
                     child: _ActiveBookingCard(booking: state.activeBookings.first),
@@ -147,9 +149,17 @@ class _Header extends StatelessWidget {
             tooltip: 'Kotak masuk',
             icon: const Icon(Icons.notifications_outlined,
                 color: Colors.white, size: 28),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const InboxScreen()),
-            ),
+            onPressed: () async {
+              if (!await wajibMasuk(context,
+                  alasan: 'Kotak masuk berisi kabar penanganan darurat dan '
+                      'pengingat pendakian Anda.')) {
+                return;
+              }
+              if (!context.mounted) return;
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const InboxScreen()),
+              );
+            },
           ),
         ],
       ),

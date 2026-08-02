@@ -9,11 +9,11 @@ import 'blocs/map/map_bloc.dart';
 import 'blocs/sos/sos_bloc.dart';
 import 'blocs/trips/trips_bloc.dart';
 import 'core/api_client.dart';
+import 'core/preferensi.dart';
 import 'core/theme.dart';
 import 'data/repositories.dart';
 import 'data/shalat_repository.dart';
-import 'ui/screens/login_screen.dart';
-import 'ui/screens/shell_screen.dart';
+import 'ui/gerbang.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,49 +60,7 @@ class SembungApp extends StatelessWidget {
           title: 'Sembung Explorer',
           debugShowCheckedModeBanner: false,
           theme: buildTheme(),
-          home: BlocBuilder<AuthBloc, AuthState>(
-            buildWhen: (a, b) => a.status != b.status,
-            builder: (context, state) => switch (state.status) {
-              AuthStatus.unknown => const _Splash(),
-              AuthStatus.authenticated => const ShellScreen(),
-              AuthStatus.unauthenticated => const LoginScreen(),
-            },
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Splash extends StatelessWidget {
-  const _Splash();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: AppColors.mossDark,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('🏔️', style: TextStyle(fontSize: 64)),
-            SizedBox(height: 16),
-            Text(
-              'Sembung Explorer',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            SizedBox(height: 24),
-            SizedBox(
-              height: 22,
-              width: 22,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: Colors.white),
-            ),
-          ],
+          home: Gerbang(preferensi: Preferensi(api.prefs)),
         ),
       ),
     );

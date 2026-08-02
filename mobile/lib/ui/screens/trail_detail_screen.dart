@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../../data/repositories.dart';
 import '../widgets/common.dart';
+import '../widgets/wajib_masuk.dart';
 import 'booking_screen.dart';
 import 'map_screen.dart';
 
@@ -39,7 +40,14 @@ class _TrailDetailScreenState extends State<TrailDetailScreen> {
     }
   }
 
-  void _startBooking() {
+  Future<void> _startBooking() async {
+    if (!await wajibMasuk(context,
+        alasan: 'Pemesanan E-Pass memerlukan identitas pendaki untuk dicatat '
+            'petugas pos gerbang.')) {
+      return;
+    }
+    if (!mounted) return;
+
     final user = context.read<AuthBloc>().state.user;
     if (user == null) return;
     final trail = _full ?? widget.trail;

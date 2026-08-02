@@ -4,7 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../blocs/home/home_bloc.dart';
 import '../../blocs/sos/sos_bloc.dart';
 import '../../blocs/trips/trips_bloc.dart';
+import '../../blocs/auth/auth_bloc.dart';
 import '../../core/theme.dart';
+import '../widgets/wajib_masuk.dart';
 import 'home_screen.dart';
 import 'map_screen.dart';
 import 'profile_screen.dart';
@@ -24,12 +26,37 @@ class _ShellScreenState extends State<ShellScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<HomeBloc>().add(const HomeRefreshed());
-    context.read<TripsBloc>().add(const TripsRefreshed());
-    context.read<SosBloc>().add(const SosStarted());
+    _muat();
   }
 
-  void _open(int index) => setState(() => _index = index);
+  void _muat() {
+    final masuk =
+        context.read<AuthBloc>().state.status == AuthStatus.authenticated;
+    context.read<HomeBloc>().add(HomeRefreshed(sudahMasuk: masuk));
+    if (masuk) {
+      context.read<TripsBloc>().add(const TripsRefreshed());
+      context.read<SosBloc>().add(const SosStarted());
+    }
+  }
+
+  /// Alasan khusus per tab supaya ajakan masuk terasa relevan, bukan generik.
+  static const _alasan = {
+    2: 'Perjalanan menyimpan E-Pass dan riwayat pendakian Anda, jadi perlu akun.',
+    3: 'Tombol darurat mengirim identitas dan data rombongan ke pos pemantau, '
+        'sehingga hanya bisa dipakai setelah masuk.',
+    4: 'Profil berisi data diri dan kontak darurat yang dipakai tim SAR.',
+  };
+
+  Future<void> _open(int index) async {
+    final butuhAkun = _alasan.containsKey(index);
+    if (butuhAkun &&
+        context.read<AuthBloc>().state.status != AuthStatus.authenticated) {
+      final berhasil = await wajibMasuk(context, alasan: _alasan[index]!);
+      if (!berhasil || !mounted) return;
+      _muat();
+    }
+    if (mounted) setState(() => _index = index);
+  }
 
   @override
   Widget build(BuildContext context) {

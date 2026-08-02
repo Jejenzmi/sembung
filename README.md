@@ -63,6 +63,15 @@ cd mobile && flutter run           # aplikasi pendaki
 
 ### 📱 Aplikasi Pendaki (Flutter + Bloc)
 
+**Alur pertama kali pakai:** splash bergerak → perkenalan tiga layar → permintaan
+**izin lokasi** → permintaan **izin notifikasi** → langsung ke beranda.
+
+Beranda terbuka untuk siapa pun **tanpa login**. Tamu bisa melihat jalur, peta, cuaca,
+jadwal salat, kompas, dan konten kawasan. Login baru diminta ketika pengguna menyentuh
+sesuatu yang menyangkut identitasnya — memesan E-Pass, membuka Perjalanan, menekan SOS,
+Profil, atau kotak masuk — lengkap dengan alasan yang spesifik per aksi, bukan pesan
+generik. Perkenalan hanya muncul sekali; keluar akun tidak mengulanginya.
+
 * **Smart Ticketing & E-Permit** — pilih jalur, tanggal, anggota rombongan, tiket
   masuk/berkemah/parkir/asuransi, sewa alat, dan pemandu; harga dihitung server
   secara *live* (`/bookings/quote`) sebelum pesanan dibuat.

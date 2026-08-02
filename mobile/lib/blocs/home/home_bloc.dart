@@ -11,7 +11,11 @@ abstract class HomeEvent extends Equatable {
 }
 
 class HomeRefreshed extends HomeEvent {
-  const HomeRefreshed();
+  /// Tamu belum punya booking; memanggil endpoint bersesi hanya akan 401.
+  final bool sudahMasuk;
+  const HomeRefreshed({this.sudahMasuk = false});
+  @override
+  List<Object?> get props => [sudahMasuk];
 }
 
 enum HomeStatus { loading, ready, failure }
@@ -64,7 +68,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         _catalog.trails(),
         _catalog.contents(),
         _catalog.capacity(),
-        _bookings.mine(),
+        event.sudahMasuk
+            ? _bookings.mine()
+            : Future<List<Booking>>.value(const []),
         _catalog.cuaca(),
       ]);
 
