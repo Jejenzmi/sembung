@@ -196,6 +196,23 @@ di server serta di arsip MinIO.
 cd /root/sembung && git push origin master
 ```
 
+## Catatan keamanan dependensi
+
+`npm audit` pada dependensi **produksi backend: 0 kerentanan**. Dependabot GitHub
+masih menandai `react-router-dom`, dan itu memang belum bisa dibereskan dengan
+menaikkan versi:
+
+| Versi | Peringatan |
+|---|---|
+| ≤ 7.11.x | XSS lewat open redirect |
+| 7.12.0 – terbaru | CSRF bypass **pada mode RSC** |
+
+Belum ada versi yang bebas keduanya. Kami tetap di versi terbaru karena aplikasi ini
+**SPA klien murni**: `BrowserRouter` biasa, tanpa `createBrowserRouter`, tanpa
+`loader`/`action`, tanpa RSC — sudah diperiksa dan hasilnya nol kemunculan. Jalur yang
+rentan tidak pernah dijalankan, sedangkan XSS open-redirect pada versi lama justru
+relevan untuk SPA. Begitu ada rilis yang menutup keduanya, cukup `npm i react-router-dom@latest`.
+
 ## Uji otomatis
 
 ```bash
