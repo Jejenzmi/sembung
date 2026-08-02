@@ -10,6 +10,8 @@ import '../widgets/common.dart';
 import 'content_detail_screen.dart';
 import 'epass_screen.dart';
 import 'inbox_screen.dart';
+import 'kompas_screen.dart';
+import 'shalat_screen.dart';
 import 'trail_detail_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -221,40 +223,55 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = [
-      ('🗺️', 'Peta Offline', 1),
-      ('🎟️', 'Perjalanan', 2),
-      ('🚨', 'Tombol SOS', 3),
-      ('👤', 'Profil', 4),
+    // -1 berarti membuka layar tersendiri, bukan berpindah tab.
+    final items = <(String, String, int, Widget?)>[
+      ('🗺️', 'Peta Offline', 1, null),
+      ('🎟️', 'Perjalanan', 2, null),
+      ('🚨', 'Tombol SOS', 3, null),
+      ('🧭', 'Kompas', -1, const KompasScreen()),
+      ('🕌', 'Jadwal Salat', -1, const ShalatScreen()),
+      ('👤', 'Profil', 4, null),
     ];
+
+    Widget kartu((String, String, int, Widget?) item) => AppCard(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          onTap: () {
+            if (item.$4 != null) {
+              Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => item.$4!));
+            } else {
+              onOpenTab(item.$3);
+            }
+          },
+          child: Column(
+            children: [
+              Text(item.$1, style: const TextStyle(fontSize: 24)),
+              const SizedBox(height: 8),
+              Text(
+                item.$2,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+        );
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-      child: Row(
-        children: items
-            .map(
-              (item) => Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 5),
-                  child: AppCard(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    onTap: () => onOpenTab(item.$3),
-                    child: Column(
-                      children: [
-                        Text(item.$1, style: const TextStyle(fontSize: 24)),
-                        const SizedBox(height: 8),
-                        Text(
-                          item.$2,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontSize: 11.5, fontWeight: FontWeight.w700),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            )
-            .toList(),
+      child: Column(
+        children: [
+          for (var baris = 0; baris < 2; baris++) ...[
+            if (baris > 0) const SizedBox(height: 10),
+            Row(
+              children: [
+                for (var k = 0; k < 3; k++) ...[
+                  if (k > 0) const SizedBox(width: 10),
+                  Expanded(child: kartu(items[baris * 3 + k])),
+                ],
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
