@@ -1,6 +1,6 @@
 import { NotifChannel, NotifStatus, Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { emit } from '../lib/realtime';
+import { emit, emitTo } from '../lib/realtime';
 
 interface Outgoing {
   subject: string;
@@ -97,4 +97,25 @@ export async function notifyStaff(msg: Outgoing) {
   );
 
   return created.length;
+}
+
+/** Mengirim pesan ke kotak masuk pendaki di dalam aplikasi. */
+export async function notifyUser(
+  userId: string,
+  msg: { subject: string; body: string; refType?: string; refId?: string }
+) {
+  const row = await prisma.notification.create({
+    data: {
+      channel: NotifChannel.INAPP,
+      userId,
+      target: userId,
+      subject: msg.subject,
+      body: msg.body,
+      refType: msg.refType,
+      refId: msg.refId,
+      status: NotifStatus.PENDING,
+    },
+  });
+  emitTo(`user:${userId}`, 'inbox:new', { id: row.id, subject: msg.subject });
+  return row;
 }

@@ -19,6 +19,7 @@ const Users = lazy(() => import('./pages/Users'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Reports = lazy(() => import('./pages/Reports'))
 const Refunds = lazy(() => import('./pages/Refunds'))
+const Vouchers = lazy(() => import('./pages/Vouchers'))
 
 function Guard({ children, adminOnly }: { children: React.ReactNode; adminOnly?: boolean }) {
   const { user, isAdmin } = useAuth()
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="bookings" element={<Guard><Bookings /></Guard>} />
             <Route path="refunds" element={<Guard><Refunds /></Guard>} />
             <Route path="reports" element={<Guard><Reports /></Guard>} />
+            <Route path="vouchers" element={<Guard adminOnly><Vouchers /></Guard>} />
             <Route path="trails" element={<Guard adminOnly><Trails /></Guard>} />
             <Route path="catalog" element={<Guard adminOnly><Catalog /></Guard>} />
             <Route path="content" element={<Guard adminOnly><ContentPage /></Guard>} />

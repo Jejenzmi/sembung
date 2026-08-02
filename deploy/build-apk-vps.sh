@@ -16,6 +16,10 @@ green() { printf "\033[0;32m%s\033[0m\n" "$1"; }
 
 mkdir -p "$ROOT/.pub-cache" "$ROOT/.gradle" "$ROOT/deploy/public"
 
+# Sisa build lama membuat mergeReleaseResources gagal setelah resource baru
+# (ikon/splash) ditambahkan, jadi selalu mulai bersih.
+rm -rf "$ROOT/mobile/build"
+
 green "→ membangun APK (API_URL=$API_URL)"
 # Cache pub & gradle di-mount supaya build berikutnya cepat; tanpa ini
 # `docker run --rm` membuang cache dan kompilasi Dart gagal menemukan paket.

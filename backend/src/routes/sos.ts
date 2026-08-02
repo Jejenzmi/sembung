@@ -6,7 +6,7 @@ import { AppError, created, meta, ok, paginate, wrap } from '../lib/http';
 import { authenticate, staffOnly } from '../middleware/auth';
 import { docCode } from '../lib/codes';
 import { emit } from '../lib/realtime';
-import { notifyStaff } from '../services/notify';
+import { notifyStaff, notifyUser } from '../services/notify';
 
 const router = Router();
 router.use(authenticate);
@@ -179,6 +179,22 @@ router.put(
       },
       include: alertInclude,
     });
+
+    // Pendaki berhak tahu permintaannya sedang ditangani, bukan menunggu buta.
+    const pesan: Record<string, string> = {
+      ACKNOWLEDGED: 'Pos pemantau sudah menerima sinyal darurat Anda.',
+      RESCUING: 'Tim evakuasi sedang menuju lokasi Anda. Tetap di tempat aman.',
+      RESOLVED: 'Penanganan darurat dinyatakan selesai.',
+      FALSE_ALARM: 'Sinyal darurat Anda ditandai sebagai alarm palsu oleh petugas.',
+    };
+    if (pesan[body.status]) {
+      notifyUser(alert.userId, {
+        subject: `Status darurat ${alert.code}`,
+        body: pesan[body.status] + (body.resolutionNote ? `\n\nCatatan: ${body.resolutionNote}` : ''),
+        refType: 'SOS',
+        refId: alert.id,
+      }).catch((e) => console.error('Notifikasi pendaki gagal:', e));
+    }
 
     emit('sos:updated', alert);
     return ok(res, alert, `Status darurat: ${body.status}`);

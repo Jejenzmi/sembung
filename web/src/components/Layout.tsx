@@ -27,6 +27,7 @@ const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { to: '/reports', label: 'Laporan & Ekspor', icon: '📈' },
       { to: '/refunds', label: 'Pengembalian Dana', icon: '💸' },
+      { to: '/vouchers', label: 'Voucher & Potongan', icon: '🎫', roles: ['ADMIN'] },
     ],
   },
   {

@@ -118,6 +118,8 @@ enum NotifChannel {
   WEBHOOK
   EMAIL
   PUSH
+  /// Kotak masuk di dalam aplikasi pendaki — tidak butuh layanan pihak ketiga.
+  INAPP
 }
 
 enum NotifStatus {
@@ -125,6 +127,11 @@ enum NotifStatus {
   SENT
   FAILED
   SKIPPED
+}
+
+enum VoucherType {
+  PERCENT
+  FIXED
 }
 
 enum RefundStatus {
@@ -159,6 +166,9 @@ model User {
   trackPings       TrackPing[]
   guideProfile     Guide?
   reviews          Review[]
+  guideReviews     GuideReview[]
+  notifications    Notification[]
+  vouchersUsed     VoucherUsage[]
   refundsRequested Refund[]        @relation("RefundRequester")
   refundsProcessed Refund[]        @relation("RefundProcessor")
   auditLogs        AuditLog[]
@@ -185,6 +195,7 @@ model Trail {
   gates           Gate[]
   bookings        Booking[]
   reviews         Review[]
+  vouchers        Voucher[]
 }
 
 model TrailPoint {
@@ -258,6 +269,8 @@ model Guide {
   isAvailable     Boolean   @default(true)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+
+  reviews         GuideReview[]
 }
 
 model Booking {
@@ -292,6 +305,10 @@ model Booking {
   sosAlerts     SosAlert[]
   trackPings    TrackPing[]
   refunds       Refund[]
+  guideReviews  GuideReview[]
+  voucherUsage  VoucherUsage?
+  /// Potongan dari voucher, sudah dikurangkan dari total.
+  discount      Int           @default(0)
 
   @@index([startDate, status])
   @@index([userId])
@@ -467,6 +484,59 @@ model Review {
   @@unique([userId, trailId])
 }
 
+model Voucher {
+  code         String      @id
+  name         String
+  type         VoucherType @default(PERCENT)
+  /// Persen (1-100) untuk PERCENT, rupiah untuk FIXED.
+  value        Int
+  maxDiscount  Int?
+  minSpend     Int         @default(0)
+  quota        Int         @default(0)
+  used         Int         @default(0)
+  validFrom    DateTime    @db.Date
+  validUntil   DateTime    @db.Date
+  trailId      String?
+  trail        Trail?      @relation(fields: [trailId], references: [id])
+  isActive     Boolean     @default(true)
+  description  String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  usages       VoucherUsage[]
+}
+
+model VoucherUsage {
+  id          String   @id @default(uuid())
+  voucherCode String
+  voucher     Voucher  @relation(fields: [voucherCode], references: [code], onDelete: Cascade)
+  bookingId   String   @unique
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  discount    Int
+  createdAt   DateTime @default(now())
+
+  @@index([voucherCode])
+}
+
+/// Ulasan untuk pemandu/porter, terpisah dari ulasan jalur.
+model GuideReview {
+  id        String   @id @default(uuid())
+  guideId   String
+  guide     Guide    @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, guideId, bookingId])
+  @@index([guideId])
+}
+
 model Setting {
   key       String   @id
   value     String
@@ -479,6 +549,10 @@ model Setting {
 model Notification {
   id        String       @id @default(uuid())
   channel   NotifChannel
+  /// Diisi untuk notifikasi dalam aplikasi; null untuk kanal keluar.
+  userId    String?
+  user      User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt    DateTime?
   target    String
   subject   String?
   body      String
@@ -492,4 +566,5 @@ model Notification {
 
   @@index([refType, refId])
   @@index([status, createdAt])
+  @@index([userId, readAt])
 }

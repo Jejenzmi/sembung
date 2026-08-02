@@ -4,6 +4,7 @@ import L from 'leaflet'
 import { api, errMsg } from '../lib/api'
 import type { Trail, TrailPoint } from '../lib/types'
 import { Empty, Loading, Modal, PageHeader, StatusBadge } from '../components/ui'
+import ImageUpload from '../components/ImageUpload'
 
 const POINT_TYPES = [
   ['BASECAMP', '🏠 Basecamp'],
@@ -309,7 +310,6 @@ export default function Trails() {
               ['summitElevM', 'Ketinggian Puncak (mdpl)'],
               ['estimatedHours', 'Estimasi (jam)'],
               ['dailyQuota', 'Kuota Harian'],
-              ['imageUrl', 'URL Gambar'],
             ].map(([key, label]) => (
               <div key={key}>
                 <label className="label">{label}</label>
@@ -345,6 +345,14 @@ export default function Trails() {
                 <option value="LIMITED">Terbatas</option>
                 <option value="CLOSED">Ditutup</option>
               </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label">Gambar Jalur</label>
+              <ImageUpload
+                folder="jalur"
+                value={String(trailForm.imageUrl ?? '')}
+                onChange={(url) => setTrailForm({ ...trailForm, imageUrl: url })}
+              />
             </div>
             <div className="sm:col-span-2">
               <label className="label">Deskripsi</label>

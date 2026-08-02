@@ -31,6 +31,7 @@ class SembungApp extends StatelessWidget {
     final catalogRepo = CatalogRepository(api);
     final bookingRepo = BookingRepository(api);
     final sosRepo = SosRepository(api);
+    final inboxRepo = InboxRepository(api);
 
     return MultiRepositoryProvider(
       providers: [
@@ -39,6 +40,7 @@ class SembungApp extends StatelessWidget {
         RepositoryProvider.value(value: catalogRepo),
         RepositoryProvider.value(value: bookingRepo),
         RepositoryProvider.value(value: sosRepo),
+        RepositoryProvider.value(value: inboxRepo),
       ],
       child: MultiBlocProvider(
         providers: [

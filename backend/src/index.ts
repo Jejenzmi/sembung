@@ -15,6 +15,7 @@ io.on('connection', (socket) => {
   socket.on('join', (room: string) => socket.join(room));
 });
 
+
 const port = Number(process.env.PORT) || 5022;
 server.listen(port, () => {
   console.log(`🏔️  Sembung Explorer API  →  http://localhost:${port}`);

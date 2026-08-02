@@ -782,6 +782,8 @@ class Quote extends Equatable {
   final int persons;
   final List<BookingItem> items;
   final int subtotal;
+  final int discount;
+  final String? voucherCode;
   final int serviceFee;
   final int total;
 
@@ -790,6 +792,8 @@ class Quote extends Equatable {
     required this.persons,
     required this.items,
     required this.subtotal,
+    this.discount = 0,
+    this.voucherCode,
     required this.serviceFee,
     required this.total,
   });
@@ -801,10 +805,80 @@ class Quote extends Equatable {
             .map((e) => BookingItem.fromJson(e as Map<String, dynamic>))
             .toList(),
         subtotal: _int(j['subtotal']),
+        discount: _int(j['discount']),
+        voucherCode: j['voucherCode'] as String?,
         serviceFee: _int(j['serviceFee']),
         total: _int(j['total']),
       );
 
   @override
-  List<Object?> get props => [days, persons, total];
+  List<Object?> get props => [days, persons, total, discount];
+}
+
+class InboxItem extends Equatable {
+  final String id;
+  final String subject;
+  final String body;
+  final String? refType;
+  final DateTime createdAt;
+  final DateTime? readAt;
+
+  const InboxItem({
+    required this.id,
+    required this.subject,
+    required this.body,
+    this.refType,
+    required this.createdAt,
+    this.readAt,
+  });
+
+  factory InboxItem.fromJson(Map<String, dynamic> j) => InboxItem(
+        id: j['id'] as String,
+        subject: (j['subject'] as String?) ?? 'Pemberitahuan',
+        body: (j['body'] as String?) ?? '',
+        refType: j['refType'] as String?,
+        createdAt: _date(j['createdAt']),
+        readAt: j['readAt'] == null ? null : _date(j['readAt']),
+      );
+
+  bool get belumDibaca => readAt == null;
+
+  @override
+  List<Object?> get props => [id, readAt];
+}
+
+class Voucher extends Equatable {
+  final String code;
+  final String name;
+  final String type;
+  final int value;
+  final int? maxDiscount;
+  final int minSpend;
+  final String? description;
+
+  const Voucher({
+    required this.code,
+    required this.name,
+    required this.type,
+    required this.value,
+    this.maxDiscount,
+    required this.minSpend,
+    this.description,
+  });
+
+  factory Voucher.fromJson(Map<String, dynamic> j) => Voucher(
+        code: j['code'] as String,
+        name: j['name'] as String,
+        type: j['type'] as String,
+        value: _int(j['value']),
+        maxDiscount: j['maxDiscount'] == null ? null : _int(j['maxDiscount']),
+        minSpend: _int(j['minSpend']),
+        description: j['description'] as String?,
+      );
+
+  String get ringkas =>
+      type == 'PERCENT' ? 'Potongan $value%' : 'Potongan Rp $value';
+
+  @override
+  List<Object?> get props => [code];
 }

@@ -5,7 +5,7 @@ import { prisma } from '../lib/prisma';
 import { AppError, created, meta, ok, paginate, wrap } from '../lib/http';
 import { authenticate, authorize, staffOnly } from '../middleware/auth';
 import { docCode } from '../lib/codes';
-import { releaseRentals } from '../services/booking';
+import { releaseBooking } from '../services/booking';
 import { emit } from '../lib/realtime';
 
 const router = Router();
@@ -154,7 +154,7 @@ router.put(
         refund.booking.status as never
       )
     ) {
-      await releaseRentals(refund.bookingId);
+      await releaseBooking(refund.bookingId);
       await prisma.booking.update({
         where: { id: refund.bookingId },
         data: { status: BookingStatus.CANCELLED, expiresAt: null },

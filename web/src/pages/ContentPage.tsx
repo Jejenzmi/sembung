@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, errMsg, tanggal } from '../lib/api'
 import type { Content } from '../lib/types'
 import { Empty, Loading, Modal, PageHeader } from '../components/ui'
+import ImageUpload from '../components/ImageUpload'
 
 const CATEGORY = [
   ['NEWS', '📰 Berita'],
@@ -157,11 +158,11 @@ export default function ContentPage() {
                 </select>
               </div>
               <div>
-                <label className="label">URL Gambar</label>
-                <input
-                  className="input"
+                <label className="label">Gambar</label>
+                <ImageUpload
+                  folder="konten"
                   value={String(form.imageUrl ?? '')}
-                  onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                  onChange={(url) => setForm({ ...form, imageUrl: url })}
                 />
               </div>
             </div>

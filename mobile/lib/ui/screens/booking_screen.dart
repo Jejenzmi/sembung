@@ -75,8 +75,10 @@ class BookingScreen extends StatelessWidget {
               const _RentalsSection(),
               const _StepLabel('5', 'Pemandu & Porter (opsional)'),
               const _GuidesSection(),
+              const _StepLabel('6', 'Kode Voucher'),
+              const _VoucherSection(),
               if (quote != null) ...[
-                const _StepLabel('6', 'Ringkasan Biaya'),
+                const _StepLabel('7', 'Ringkasan Biaya'),
                 _SummarySection(quote: quote),
               ],
             ],
@@ -516,6 +518,86 @@ class _GuidesSection extends StatelessWidget {
   }
 }
 
+class _VoucherSection extends StatefulWidget {
+  const _VoucherSection();
+
+  @override
+  State<_VoucherSection> createState() => _VoucherSectionState();
+}
+
+class _VoucherSectionState extends State<_VoucherSection> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<BookingBloc>().state;
+    final terpasang = state.voucherCode.isNotEmpty && (state.quoteResult?.discount ?? 0) > 0;
+
+    return AppCard(
+      child: terpasang
+          ? Row(
+              children: [
+                const Icon(Icons.local_activity, color: AppColors.moss),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(state.voucherCode,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w800, fontSize: 15)),
+                      const SizedBox(height: 2),
+                      Text('Hemat ${rupiah(state.quoteResult!.discount)}',
+                          style: const TextStyle(
+                              fontSize: 12.5, color: AppColors.moss)),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    _controller.clear();
+                    context.read<BookingBloc>().add(const BookingVoucherChanged(''));
+                  },
+                  child: const Text('Lepas'),
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: const InputDecoration(
+                      hintText: 'Punya kode voucher?',
+                      prefixIcon: Icon(Icons.local_activity_outlined),
+                      isDense: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(90, 48),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                  onPressed: () => context
+                      .read<BookingBloc>()
+                      .add(BookingVoucherChanged(_controller.text)),
+                  child: const Text('Pakai'),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
 class _SummarySection extends StatelessWidget {
   const _SummarySection({required this.quote});
   final Quote quote;
@@ -545,6 +627,10 @@ class _SummarySection extends StatelessWidget {
           ),
           const Divider(height: 18),
           _row('Subtotal', rupiah(quote.subtotal)),
+          if (quote.discount > 0)
+            _row('Potongan ${quote.voucherCode ?? ''}'.trim(),
+                '- ${rupiah(quote.discount)}',
+                hijau: true),
           _row('Biaya layanan', rupiah(quote.serviceFee)),
           const Divider(height: 18),
           _row('Total', rupiah(quote.total), bold: true),
@@ -553,7 +639,7 @@ class _SummarySection extends StatelessWidget {
     );
   }
 
-  Widget _row(String label, String value, {bool bold = false}) => Padding(
+  Widget _row(String label, String value, {bool bold = false, bool hijau = false}) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 3),
         child: Row(
           children: [
@@ -561,13 +647,14 @@ class _SummarySection extends StatelessWidget {
               child: Text(label,
                   style: TextStyle(
                       fontSize: 14,
+                      color: hijau ? AppColors.moss : null,
                       fontWeight: bold ? FontWeight.w800 : FontWeight.w400)),
             ),
             Text(value,
                 style: TextStyle(
                   fontSize: bold ? 16 : 14,
                   fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-                  color: bold ? AppColors.moss : null,
+                  color: bold || hijau ? AppColors.moss : null,
                 )),
           ],
         ),

@@ -15,6 +15,10 @@ import userRoutes from './routes/users';
 import settingRoutes from './routes/settings';
 import reportRoutes from './routes/reports';
 import refundRoutes from './routes/refunds';
+import voucherRoutes from './routes/vouchers';
+import mediaRoutes from './routes/media';
+import notificationRoutes from './routes/notifications';
+import guideReviewRoutes from './routes/guide-reviews';
 import { audit } from './middleware/audit';
 import { errorHandler, notFound } from './middleware/error';
 import { ok } from './lib/http';
@@ -60,6 +64,10 @@ export function createApp() {
   app.use('/api/settings', settingRoutes);
   app.use('/api/reports', reportRoutes);
   app.use('/api/refunds', refundRoutes);
+  app.use('/api/vouchers', voucherRoutes);
+  app.use('/api/media', mediaRoutes);
+  app.use('/api/notifications', notificationRoutes);
+  app.use('/api/guide-reviews', guideReviewRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

@@ -92,6 +92,14 @@ class BookingErrorCleared extends BookingEvent {
   const BookingErrorCleared();
 }
 
+/// Kosongkan kode untuk melepas voucher yang sedang terpasang.
+class BookingVoucherChanged extends BookingEvent {
+  final String code;
+  const BookingVoucherChanged(this.code);
+  @override
+  List<Object?> get props => [code];
+}
+
 /* --------------------------------- states --------------------------------- */
 
 enum BookingStep { draft, created, awaitingPayment, paid }
@@ -114,6 +122,7 @@ class BookingState extends Equatable {
   final Booking? booking;
   final Payment? payment;
 
+  final String voucherCode;
   final BookingStep step;
   final bool loading;
   final bool busy;
@@ -134,6 +143,7 @@ class BookingState extends Equatable {
     this.quoteResult,
     this.booking,
     this.payment,
+    this.voucherCode = '',
     this.step = BookingStep.draft,
     this.loading = false,
     this.busy = false,
@@ -171,6 +181,7 @@ class BookingState extends Equatable {
     Quote? quoteResult,
     Booking? booking,
     Payment? payment,
+    String? voucherCode,
     BookingStep? step,
     bool? loading,
     bool? busy,
@@ -193,6 +204,7 @@ class BookingState extends Equatable {
         quoteResult: clearQuote ? null : (quoteResult ?? this.quoteResult),
         booking: booking ?? this.booking,
         payment: payment ?? this.payment,
+        voucherCode: voucherCode ?? this.voucherCode,
         step: step ?? this.step,
         loading: loading ?? this.loading,
         busy: busy ?? this.busy,
@@ -215,6 +227,7 @@ class BookingState extends Equatable {
         quoteResult,
         booking,
         payment,
+        voucherCode,
         step,
         loading,
         busy,
@@ -238,6 +251,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     on<BookingPaymentRequested>(_onPay);
     on<BookingPaymentConfirmed>(_onConfirm);
     on<BookingErrorCleared>((_, emit) => emit(state.copyWith(clearError: true)));
+    on<BookingVoucherChanged>(_onVoucher);
   }
 
   final CatalogRepository _catalog;
@@ -257,6 +271,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
             .map((e) => {'id': e.key, 'qty': e.value})
             .toList(),
         'guides': state.guides.map((id) => {'id': id, 'qty': 1}).toList(),
+        if (state.voucherCode.isNotEmpty) 'voucherCode': state.voucherCode,
       };
 
   Future<void> _onStart(
@@ -373,6 +388,11 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     add(const BookingQuoteRequested());
   }
 
+  void _onVoucher(BookingVoucherChanged event, Emitter<BookingState> emit) {
+    emit(state.copyWith(voucherCode: event.code.trim().toUpperCase(), clearError: true));
+    add(const BookingQuoteRequested());
+  }
+
   Future<void> _onQuote(
       BookingQuoteRequested event, Emitter<BookingState> emit) async {
     if (state.trail == null || state.tickets.isEmpty) {
@@ -383,7 +403,15 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
       final quote = await _bookings.quote(_draftPayload());
       emit(state.copyWith(quoteResult: quote, clearError: true));
     } catch (e) {
-      emit(state.copyWith(clearQuote: true, error: e.toString()));
+      // Kutipan sebelumnya dipertahankan bila hanya vouchernya yang ditolak,
+      // supaya pengguna tidak kehilangan rincian harga yang sudah benar.
+      final voucherBermasalah = state.voucherCode.isNotEmpty;
+      emit(state.copyWith(
+        clearQuote: !voucherBermasalah,
+        voucherCode: voucherBermasalah ? '' : null,
+        error: e.toString(),
+      ));
+      if (voucherBermasalah) add(const BookingQuoteRequested());
     }
   }
 

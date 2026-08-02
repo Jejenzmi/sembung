@@ -5,7 +5,7 @@ import { BookingStatus, PaymentMethod, PaymentStatus, Role } from '@prisma/clien
 import { prisma } from '../lib/prisma';
 import { AppError, created, meta, ok, paginate, wrap } from '../lib/http';
 import { authenticate, authorize, staffOnly } from '../middleware/auth';
-import { createBooking, priceDraft, releaseRentals } from '../services/booking';
+import { createBooking, priceDraft, releaseBooking } from '../services/booking';
 import { docCode, paymentRef, qrisPayload, vaNumber } from '../lib/codes';
 import { emit } from '../lib/realtime';
 import { simulationEnabled, verifyWebhookSignature } from '../lib/signature';
@@ -35,6 +35,7 @@ const draftSchema = z.object({
   tickets: z.array(lineSchema).min(1),
   rentals: z.array(lineSchema).optional(),
   guides: z.array(lineSchema).optional(),
+  voucherCode: z.string().min(3).optional(),
   notes: z.string().optional(),
 });
 
@@ -59,6 +60,8 @@ router.post(
       persons: priced.persons,
       items: priced.lines,
       subtotal: priced.subtotal,
+      discount: priced.discount,
+      voucherCode: priced.voucherCode,
       serviceFee: priced.serviceFee,
       total: priced.total,
     });
@@ -311,7 +314,7 @@ router.post(
     if (![BookingStatus.PENDING_PAYMENT, BookingStatus.PAID].includes(booking.status as never))
       throw new AppError('Booking tidak dapat dibatalkan pada status ini', 400);
 
-    await releaseRentals(booking.id);
+    await releaseBooking(booking.id);
     const updated = await prisma.booking.update({
       where: { id: booking.id },
       data: { status: BookingStatus.CANCELLED, expiresAt: null },

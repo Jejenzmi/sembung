@@ -12,6 +12,9 @@ export const api = () => request(app);
 export async function resetDb() {
   await prisma.$transaction([
     prisma.auditLog.deleteMany(),
+    prisma.guideReview.deleteMany(),
+    prisma.voucherUsage.deleteMany(),
+    prisma.voucher.deleteMany(),
     prisma.refund.deleteMany(),
     prisma.notification.deleteMany(),
     prisma.trackPing.deleteMany(),
@@ -47,6 +50,7 @@ export interface Fixtures {
   ticketId: string;
   campId: string;
   rentalId: string;
+  guideId: string;
 }
 
 async function login(identifier: string, password: string) {
@@ -103,6 +107,9 @@ export async function seedFixtures(): Promise<Fixtures> {
   const camp = await prisma.ticketType.create({
     data: { code: 'CMP-UJI', name: 'Izin Berkemah', category: TicketCategory.CAMPING, price: 20_000 },
   });
+  const guide = await prisma.guide.create({
+    data: { name: 'Pemandu Uji', phone: '0812345678', type: 'GUIDE', ratePerDay: 200_000 },
+  });
   const rental = await prisma.rentalItem.create({
     data: { code: 'RNT-UJI', name: 'Tenda Uji', category: 'Tenda', pricePerDay: 50_000, stock: 5 },
   });
@@ -126,6 +133,7 @@ export async function seedFixtures(): Promise<Fixtures> {
     ticketId: ticket.id,
     campId: camp.id,
     rentalId: rental.id,
+    guideId: guide.id,
   };
 }
 

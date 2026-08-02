@@ -9,6 +9,7 @@ import '../../data/models.dart';
 import '../widgets/common.dart';
 import 'content_detail_screen.dart';
 import 'epass_screen.dart';
+import 'inbox_screen.dart';
 import 'trail_detail_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -138,7 +139,14 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-          const Text('🏔️', style: TextStyle(fontSize: 40)),
+          IconButton(
+            tooltip: 'Kotak masuk',
+            icon: const Icon(Icons.notifications_outlined,
+                color: Colors.white, size: 28),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const InboxScreen()),
+            ),
+          ),
         ],
       ),
     );

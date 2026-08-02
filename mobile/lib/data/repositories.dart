@@ -144,6 +144,11 @@ class CatalogRepository {
   Future<Capacity> capacity() async =>
       Capacity.fromJson(await api.get('/dashboard/capacity') as Map<String, dynamic>);
 
+  Future<List<Voucher>> vouchers() async {
+    final list = await api.get('/vouchers/active') as List;
+    return list.map((e) => Voucher.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
   Future<List<ContentItem>> contents({String? category}) async {
     final list = await api.get(
       '/content',
@@ -216,6 +221,25 @@ class BookingRepository {
         'rating': rating,
         if (comment != null && comment.isNotEmpty) 'comment': comment,
       });
+}
+
+class InboxRepository {
+  InboxRepository(this.api);
+  final ApiClient api;
+
+  /// Mengembalikan pesan sekaligus jumlah yang belum dibaca untuk lencana.
+  Future<({List<InboxItem> items, int unread})> load() async {
+    final res = await api.getWithMeta('/notifications', query: {'limit': 50});
+    final items = (res['data'] as List)
+        .map((e) => InboxItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+    final unread = ((res['meta'] as Map?)?['unread'] as num?)?.toInt() ?? 0;
+    return (items: items, unread: unread);
+  }
+
+  Future<void> tandaiDibaca(String id) => api.post('/notifications/$id/read');
+
+  Future<void> tandaiSemua() => api.post('/notifications/read-all');
 }
 
 class SosRepository {

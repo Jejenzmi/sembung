@@ -4,6 +4,7 @@ import { AppError } from '../lib/http';
 import { docCode, qrToken } from '../lib/codes';
 import { quotaForDate, startOfDay } from './quota';
 import { getNumber } from './settings';
+import { hitungVoucher, lepasVoucher, pakaiVoucher } from './voucher';
 
 export interface DraftLine {
   id: string;
@@ -29,6 +30,7 @@ export interface DraftBooking {
   tickets: DraftLine[];
   rentals?: DraftLine[];
   guides?: DraftLine[];
+  voucherCode?: string;
   notes?: string;
 }
 
@@ -113,7 +115,28 @@ export async function priceDraft(draft: DraftBooking) {
 
   const subtotal = lines.reduce((s, l) => s + l.amount, 0);
   const serviceFee = await getNumber('SERVICE_FEE');
-  return { start, end, days, persons, lines, subtotal, serviceFee, total: subtotal + serviceFee };
+
+  // Potongan dihitung dari subtotal layanan; biaya layanan tetap ditagih penuh.
+  let discount = 0;
+  let voucherCode: string | null = null;
+  if (draft.voucherCode) {
+    const hasil = await hitungVoucher(draft.voucherCode, subtotal, draft.trailId, start);
+    discount = hasil.discount;
+    voucherCode = hasil.voucher.code;
+  }
+
+  return {
+    start,
+    end,
+    days,
+    persons,
+    lines,
+    subtotal,
+    discount,
+    voucherCode,
+    serviceFee,
+    total: Math.max(0, subtotal - discount) + serviceFee,
+  };
 }
 
 export async function createBooking(userId: string, draft: DraftBooking) {
@@ -134,7 +157,7 @@ export async function createBooking(userId: string, draft: DraftBooking) {
 
   const holdMinutes = await getNumber('BOOKING_HOLD_MINUTES');
 
-  return prisma.$transaction(async (tx) => {
+  const booking = await prisma.$transaction(async (tx) => {
     // Reserve rental stock at booking time so two groups can't take the last tent.
     for (const line of priced.lines.filter((l) => l.refType === ItemRef.RENTAL)) {
       const updated = await tx.rentalItem.updateMany({
@@ -153,6 +176,7 @@ export async function createBooking(userId: string, draft: DraftBooking) {
         endDate: priced.end,
         totalPersons: priced.persons,
         subtotal: priced.subtotal,
+        discount: priced.discount,
         serviceFee: priced.serviceFee,
         total: priced.total,
         qrToken: qrToken(),
@@ -177,6 +201,26 @@ export async function createBooking(userId: string, draft: DraftBooking) {
       include: { items: true, members: true, trail: true },
     });
   });
+
+  if (priced.voucherCode && priced.discount > 0) {
+    // Di luar transaksi utama supaya kegagalan kuota voucher tidak menggantung
+    // stok alat; bila gagal, booking dibatalkan agar tidak ada potongan hantu.
+    try {
+      await pakaiVoucher(priced.voucherCode, booking.id, userId, priced.discount);
+    } catch (e) {
+      await releaseRentals(booking.id);
+      await prisma.booking.delete({ where: { id: booking.id } });
+      throw e;
+    }
+  }
+
+  return booking;
+}
+
+/** Dipakai saat batal/kedaluwarsa: kembalikan stok DAN kuota voucher. */
+export async function releaseBooking(bookingId: string) {
+  await releaseRentals(bookingId);
+  await lepasVoucher(bookingId);
 }
 
 /** Returning rental stock on cancellation keeps the catalogue honest. */

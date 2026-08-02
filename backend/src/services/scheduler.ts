@@ -1,7 +1,7 @@
 import { BookingStatus, PaymentStatus } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { emit } from '../lib/realtime';
-import { releaseRentals } from './booking';
+import { releaseBooking } from './booking';
 import { notifyStaff } from './notify';
 import { getNumber } from './settings';
 
@@ -20,7 +20,7 @@ export async function expireStaleBookings() {
   if (!stale.length) return 0;
 
   for (const booking of stale) {
-    await releaseRentals(booking.id);
+    await releaseBooking(booking.id);
     await prisma.$transaction([
       prisma.booking.update({
         where: { id: booking.id },

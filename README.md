@@ -178,6 +178,22 @@ Rentang default adalah bulan berjalan; atur dengan `?from=&to=`.
 > dengan parameter bertimezone menggeser hasil sebesar offset server — bug ini sempat
 > membuat laporan harian kosong padahal ringkasannya berisi.
 
+## Uji otomatis
+
+```bash
+deploy/ops.sh test          # seluruh berkas
+deploy/ops.sh test tests/voucher.test.ts
+```
+
+**76 kasus, 11 berkas.** Berjalan di kontainer sekali pakai terhadap database
+`sembung_test` yang terpisah. `tests/setup.ts` **menolak jalan** bila `DATABASE_URL`
+tidak menunjuk database uji — sudah dibuktikan dengan sengaja mengarahkannya ke
+database produksi.
+
+Cakupan: autentikasi & peran, pemesanan & kuota multi-hari, keamanan webhook
+pembayaran, pos gerbang, penjadwal kedaluwarsa, SOS & notifikasi, laporan & CSV,
+refund, voucher, kotak masuk, dan ulasan pemandu.
+
 ## Tata kelola
 
 * **Refund** — membatalkan booking yang sudah lunas otomatis membuka pengajuan
@@ -191,6 +207,37 @@ Rentang default adalah bulan berjalan; atur dengan `?from=&to=`.
   penghitungnya direset begitu login berhasil.
 * **Penimbangan sampah** — dicatat saat check-out sesuai tata tertib butir 2, lalu
   direkap di laporan pos gerbang.
+
+## Voucher & potongan
+
+Potongan dihitung dari **subtotal layanan**; biaya layanan tetap ditagih penuh.
+Aturan yang ditegakkan: masa berlaku, minimal belanja, batas potongan maksimum,
+pembatasan per jalur, dan kuota pemakaian. Kuota dipakai saat pemesanan dibuat dan
+**dikembalikan** ketika booking dibatalkan atau kedaluwarsa — jalur pembatalan mana
+pun memanggil `releaseBooking()`, bukan hanya melepas stok alat.
+
+Voucher yang pernah dipakai tidak bisa dihapus, hanya dinonaktifkan, supaya jejak
+diskon pada laporan tetap utuh.
+
+## Unggahan berkas
+
+Gambar jalur, konten, dan avatar diunggah ke MinIO (`sembung-media`) dan disajikan
+lewat domain sendiri di `/media/...`, bukan alamat MinIO — sehingga penyimpanan bisa
+diganti tanpa mengubah data yang tersimpan. Batas 5 MB, hanya berkas gambar, dan
+folder `jalur`/`konten`/`sewa` khusus administrator.
+
+## Kotak masuk pendaki
+
+Setiap perubahan status darurat mengirim pesan ke kotak masuk di dalam aplikasi
+(`kanal INAPP`), lengkap dengan catatan petugas. Ini menutup lingkaran informasi ke
+pendaki **tanpa** bergantung pada layanan push pihak ketiga yang belum tersedia —
+push sungguhan (FCM) masih menunggu kredensial Firebase.
+
+## Ulasan pemandu
+
+Terpisah dari ulasan jalur. Hanya bisa diberikan oleh pendaki yang benar-benar
+memakai jasa pemandu itu **dan** setelah pendakiannya berstatus selesai. Rating
+pemandu selalu dihitung ulang dari rata-rata ulasan, bukan angka yang diketik admin.
 
 ## Aturan bisnis yang ditegakkan server
 
