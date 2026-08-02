@@ -144,6 +144,17 @@ class CatalogRepository {
   Future<Capacity> capacity() async =>
       Capacity.fromJson(await api.get('/dashboard/capacity') as Map<String, dynamic>);
 
+  /// Prakiraan BMKG. Mengembalikan null bila layanan tidak dapat dihubungi —
+  /// beranda menampilkan ketidaktersediaannya apa adanya.
+  Future<CuacaKawasan?> cuaca() async {
+    try {
+      return CuacaKawasan.fromJson(
+          await api.get('/weather') as Map<String, dynamic>);
+    } on ApiException {
+      return null;
+    }
+  }
+
   Future<List<Voucher>> vouchers() async {
     final list = await api.get('/vouchers/active') as List;
     return list.map((e) => Voucher.fromJson(e as Map<String, dynamic>)).toList();

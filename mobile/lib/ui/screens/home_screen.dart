@@ -55,6 +55,8 @@ class HomeScreen extends StatelessWidget {
                     child: _ActiveBookingCard(booking: state.activeBookings.first),
                   ),
                 SliverToBoxAdapter(child: _QuickActions(onOpenTab: onOpenTab)),
+                if (state.cuaca != null)
+                  SliverToBoxAdapter(child: _CuacaCard(cuaca: state.cuaca!)),
                 if (state.capacity != null)
                   SliverToBoxAdapter(child: _CapacityCard(capacity: state.capacity!)),
                 const SliverToBoxAdapter(
@@ -253,6 +255,127 @@ class _QuickActions extends StatelessWidget {
               ),
             )
             .toList(),
+      ),
+    );
+  }
+}
+
+class _CuacaCard extends StatelessWidget {
+  const _CuacaCard({required this.cuaca});
+  final CuacaKawasan cuaca;
+
+  @override
+  Widget build(BuildContext context) {
+    final kini = cuaca.sekarang;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+      child: AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Cuaca Kawasan',
+                          style: TextStyle(fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 2),
+                      Text('${cuaca.desa}, ${cuaca.kecamatan} · ${cuaca.sumber}',
+                          style: const TextStyle(
+                              fontSize: 11.5, color: AppColors.muted)),
+                    ],
+                  ),
+                ),
+                if (kini != null)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(kini.lambang, style: const TextStyle(fontSize: 28)),
+                      Text('${kini.suhu}°C',
+                          style: const TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.w800)),
+                    ],
+                  ),
+              ],
+            ),
+            if (kini != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                '${kini.cuaca} · angin ${kini.anginKmJam.round()} km/j ${kini.arahAngin} · '
+                'lembap ${kini.kelembapan}%',
+                style: const TextStyle(fontSize: 12.5, color: AppColors.muted),
+              ),
+            ],
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: cuaca.aman
+                    ? AppColors.mossLight
+                    : AppColors.emberLight,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    cuaca.aman ? '✅ Aman didaki' : '⚠️ Perhatian pendakian',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12.5,
+                      color: cuaca.aman ? AppColors.mossDark : AppColors.ember,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ...cuaca.peringatan.map(
+                    (p) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text('• $p',
+                          style: const TextStyle(fontSize: 12, height: 1.45)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (cuaca.prakiraan.length > 1) ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 74,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: cuaca.prakiraan.length.clamp(0, 8),
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (_, i) {
+                    final p = cuaca.prakiraan[i];
+                    return Container(
+                      width: 64,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(p.jam,
+                              style: const TextStyle(
+                                  fontSize: 11, color: AppColors.muted)),
+                          Text(p.lambang, style: const TextStyle(fontSize: 18)),
+                          Text('${p.suhu}°',
+                              style: const TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

@@ -13,6 +13,8 @@ export const DEFAULTS: Record<string, string> = {
   PARK_PHONE: '0264-000111',
   SAR_PHONE: '115',
   LAST_ASCENT_HOUR: '16',
+  // Desa Sukajaya, Kec. Sukatani, Kab. Purwakarta — desa terdekat kawasan.
+  BMKG_ADM4: '32.14.05.2012',
 };
 
 const TTL_MS = 30_000;

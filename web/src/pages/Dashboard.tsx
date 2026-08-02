@@ -19,6 +19,7 @@ import { io, type Socket } from 'socket.io-client'
 import { API_URL, api, rupiah, tanggal } from '../lib/api'
 import type { Summary } from '../lib/types'
 import { Loading, PageHeader, StatCard } from '../components/ui'
+import WeatherCard from '../components/WeatherCard'
 
 interface TrendRow {
   date: string
@@ -151,7 +152,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <WeatherCard />
         <div className="card">
           <h3 className="mb-4 font-bold text-slate-900">Okupansi per Jalur</h3>
           <div className="space-y-4">

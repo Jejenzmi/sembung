@@ -882,3 +882,91 @@ class Voucher extends Equatable {
   @override
   List<Object?> get props => [code];
 }
+
+class Prakiraan extends Equatable {
+  final String waktuLokal;
+  final int suhu;
+  final int kelembapan;
+  final String cuaca;
+  final double anginKmJam;
+  final String arahAngin;
+  final int jarakPandangM;
+
+  const Prakiraan({
+    required this.waktuLokal,
+    required this.suhu,
+    required this.kelembapan,
+    required this.cuaca,
+    required this.anginKmJam,
+    required this.arahAngin,
+    required this.jarakPandangM,
+  });
+
+  factory Prakiraan.fromJson(Map<String, dynamic> j) => Prakiraan(
+        waktuLokal: (j['waktuLokal'] as String?) ?? '',
+        suhu: _int(j['suhu']),
+        kelembapan: _int(j['kelembapan']),
+        cuaca: (j['cuaca'] as String?) ?? '-',
+        anginKmJam: _dbl(j['anginKmJam']),
+        arahAngin: (j['arahAngin'] as String?) ?? '-',
+        jarakPandangM: _int(j['jarakPandangM']),
+      );
+
+  String get jam => waktuLokal.length >= 16 ? waktuLokal.substring(11, 16) : '';
+
+  /// Lambang sederhana; ikon SVG BMKG tidak dipakai agar tetap tampil offline.
+  String get lambang {
+    final c = cuaca.toLowerCase();
+    if (c.contains('petir')) return '⛈️';
+    if (c.contains('lebat')) return '🌧️';
+    if (c.contains('hujan')) return '🌦️';
+    if (c.contains('kabut') || c.contains('asap')) return '🌫️';
+    if (c.contains('berawan')) return '⛅';
+    if (c.contains('mendung')) return '☁️';
+    return '☀️';
+  }
+
+  @override
+  List<Object?> get props => [waktuLokal, suhu, cuaca];
+}
+
+class CuacaKawasan extends Equatable {
+  final String desa;
+  final String kecamatan;
+  final Prakiraan? sekarang;
+  final List<Prakiraan> prakiraan;
+  final List<String> peringatan;
+  final String sumber;
+
+  const CuacaKawasan({
+    required this.desa,
+    required this.kecamatan,
+    this.sekarang,
+    required this.prakiraan,
+    required this.peringatan,
+    required this.sumber,
+  });
+
+  factory CuacaKawasan.fromJson(Map<String, dynamic> j) {
+    final lok = (j['lokasi'] as Map?) ?? const {};
+    return CuacaKawasan(
+      desa: (lok['desa'] as String?) ?? '-',
+      kecamatan: (lok['kecamatan'] as String?) ?? '-',
+      sekarang: j['sekarang'] == null
+          ? null
+          : Prakiraan.fromJson(j['sekarang'] as Map<String, dynamic>),
+      prakiraan: ((j['prakiraan'] as List?) ?? [])
+          .map((e) => Prakiraan.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      peringatan:
+          ((j['peringatan'] as List?) ?? []).map((e) => e.toString()).toList(),
+      sumber: (j['sumber'] as String?) ?? 'BMKG',
+    );
+  }
+
+  bool get aman =>
+      peringatan.length == 1 && peringatan.first.startsWith('Tidak ada');
+
+  @override
+  List<Object?> get props => [desa, sekarang, peringatan];
+}

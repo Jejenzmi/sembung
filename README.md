@@ -185,14 +185,14 @@ deploy/ops.sh test          # seluruh berkas
 deploy/ops.sh test tests/voucher.test.ts
 ```
 
-**76 kasus, 11 berkas.** Berjalan di kontainer sekali pakai terhadap database
+**83 kasus, 12 berkas.** Berjalan di kontainer sekali pakai terhadap database
 `sembung_test` yang terpisah. `tests/setup.ts` **menolak jalan** bila `DATABASE_URL`
 tidak menunjuk database uji — sudah dibuktikan dengan sengaja mengarahkannya ke
 database produksi.
 
 Cakupan: autentikasi & peran, pemesanan & kuota multi-hari, keamanan webhook
 pembayaran, pos gerbang, penjadwal kedaluwarsa, SOS & notifikasi, laporan & CSV,
-refund, voucher, kotak masuk, dan ulasan pemandu.
+refund, voucher, kotak masuk, ulasan pemandu, dan cuaca BMKG (dengan BMKG di-mock).
 
 ## Tata kelola
 
@@ -238,6 +238,21 @@ push sungguhan (FCM) masih menunggu kredensial Firebase.
 Terpisah dari ulasan jalur. Hanya bisa diberikan oleh pendaki yang benar-benar
 memakai jasa pemandu itu **dan** setelah pendakiannya berstatus selesai. Rating
 pemandu selalu dihitung ulang dari rata-rata ulasan, bukan angka yang diketik admin.
+
+## Cuaca BMKG
+
+Prakiraan resmi BMKG untuk **Desa Sukajaya, Kec. Sukatani, Kab. Purwakarta**
+(`adm4 = 32.14.05.2012`) — desa terdekat kawasan. Kode wilayahnya tersimpan sebagai
+pengaturan `BMKG_ADM4`, jadi bisa diganti dari back office tanpa deploy ulang.
+
+Hasilnya tidak sekadar disalin: sistem menyusun **peringatan khusus pendakian** dari
+angka mentahnya — jam mulai hujan, potensi petir di punggungan terbuka, jarak pandang
+di bawah 2 km yang membuat Tebing Sanggabuana berbahaya, angin di atas 25 km/jam, dan
+suhu rendah. Bila tidak ada ancaman, dinyatakan aman apa adanya.
+
+Respons di-cache 30 menit supaya layanan publik BMKG tidak dibanjiri. Bila BMKG tidak
+dapat dihubungi, endpoint menjawab `503` dengan pesan jujur — **bukan** menyajikan data
+lama seolah masih berlaku.
 
 ## Aturan bisnis yang ditegakkan server
 

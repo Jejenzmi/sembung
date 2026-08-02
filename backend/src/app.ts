@@ -19,6 +19,7 @@ import voucherRoutes from './routes/vouchers';
 import mediaRoutes from './routes/media';
 import notificationRoutes from './routes/notifications';
 import guideReviewRoutes from './routes/guide-reviews';
+import weatherRoutes from './routes/weather';
 import { audit } from './middleware/audit';
 import { errorHandler, notFound } from './middleware/error';
 import { ok } from './lib/http';
@@ -68,6 +69,7 @@ export function createApp() {
   app.use('/api/media', mediaRoutes);
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/guide-reviews', guideReviewRoutes);
+  app.use('/api/weather', weatherRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

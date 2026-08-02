@@ -22,6 +22,7 @@ class HomeState extends Equatable {
   final List<ContentItem> contents;
   final Capacity? capacity;
   final List<Booking> activeBookings;
+  final CuacaKawasan? cuaca;
   final String? error;
 
   const HomeState({
@@ -30,12 +31,13 @@ class HomeState extends Equatable {
     this.contents = const [],
     this.capacity,
     this.activeBookings = const [],
+    this.cuaca,
     this.error,
   });
 
   @override
   List<Object?> get props =>
-      [status, trails, contents, capacity, activeBookings, error];
+      [status, trails, contents, capacity, activeBookings, cuaca, error];
 }
 
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
@@ -53,6 +55,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       contents: state.contents,
       capacity: state.capacity,
       activeBookings: state.activeBookings,
+      cuaca: state.cuaca,
     ));
     try {
       // One round trip per section, fired together to keep the pull-to-refresh
@@ -62,6 +65,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         _catalog.contents(),
         _catalog.capacity(),
         _bookings.mine(),
+        _catalog.cuaca(),
       ]);
 
       final all = results[3] as List<Booking>;
@@ -70,6 +74,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         trails: results[0] as List<Trail>,
         contents: results[1] as List<ContentItem>,
         capacity: results[2] as Capacity,
+        cuaca: results[4] as CuacaKawasan?,
         activeBookings: all
             .where((b) =>
                 b.status == 'PAID' ||
@@ -84,6 +89,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         contents: state.contents,
         capacity: state.capacity,
         activeBookings: state.activeBookings,
+        cuaca: state.cuaca,
         error: e.toString(),
       ));
     }
