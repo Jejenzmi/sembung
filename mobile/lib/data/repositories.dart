@@ -180,6 +180,24 @@ class CatalogRepository {
     }
   }
 
+  Future<List<Warung>> warung() async {
+    final list = await api.get('/warung') as List;
+    return list.map((e) => Warung.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<MenuWarung>> menuPraPesan() async {
+    final list = await api.get('/warung/pra-pesan') as List;
+    return list.map((e) => MenuWarung.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<PetaSinyal?> sinyal(String slug) async {
+    try {
+      return PetaSinyal.fromJson(await api.get('/sinyal/$slug') as Map<String, dynamic>);
+    } on ApiException {
+      return null;
+    }
+  }
+
   Future<List<Voucher>> vouchers() async {
     final list = await api.get('/vouchers/active') as List;
     return list.map((e) => Voucher.fromJson(e as Map<String, dynamic>)).toList();

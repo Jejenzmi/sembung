@@ -67,6 +67,14 @@ enum ItemRef {
   RENTAL
   GUIDE
   HOMESTAY
+  FOOD
+}
+
+enum KuatSinyal {
+  KOSONG
+  LEMAH
+  SEDANG
+  BAIK
 }
 
 enum JenisPenginapan {
@@ -226,6 +234,8 @@ model TrailPoint {
   description String?
   createdAt   DateTime  @default(now())
 
+  sinyal      SinyalTitik[]
+
   @@index([trailId, sequence])
 }
 
@@ -282,6 +292,61 @@ model Homestay {
   updatedAt   DateTime        @updatedAt
 
   @@index([isActive, type])
+}
+
+/// Warung dan tempat makan di area basecamp. Paket makan bisa dipesan lebih
+/// dulu bersama E-Pass supaya warung menyiapkan porsinya, sisanya bayar di tempat.
+model Warung {
+  id          String     @id @default(uuid())
+  code        String     @unique
+  name        String
+  description String?
+  address     String?
+  phone       String?
+  whatsapp    String?
+  jamBuka     String?
+  lat         Float?
+  lng         Float?
+  imageUrl    String?
+  rating      Float      @default(5)
+  distanceKm  Float?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  menu        MenuWarung[]
+
+  @@index([isActive])
+}
+
+model MenuWarung {
+  id          String   @id @default(uuid())
+  warungId    String
+  warung      Warung   @relation(fields: [warungId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  category    String   @default("Makanan")
+  price       Int
+  imageUrl    String?
+  /// Paket yang bisa dipesan lebih dulu lewat aplikasi; sisanya hanya dipajang.
+  bisaPraPesan Boolean @default(false)
+  isActive    Boolean  @default(true)
+
+  @@index([warungId, isActive])
+}
+
+/// Kuat sinyal tiap operator di titik jalur — informasi yang menentukan di mana
+/// pendaki masih bisa mengabari keluarga dan di mana SOS tidak akan terkirim.
+model SinyalTitik {
+  id        String     @id @default(uuid())
+  pointId   String
+  point     TrailPoint @relation(fields: [pointId], references: [id], onDelete: Cascade)
+  operator  String
+  kuat      KuatSinyal @default(KOSONG)
+  catatan   String?
+  updatedAt DateTime   @updatedAt
+
+  @@unique([pointId, operator])
 }
 
 model RentalItem {

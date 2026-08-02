@@ -1110,3 +1110,141 @@ class KondisiKawasan extends Equatable {
   @override
   List<Object?> get props => [totalPendakiAktif, jalur];
 }
+
+class MenuWarung extends Equatable {
+  final String id;
+  final String name;
+  final String? description;
+  final String category;
+  final int price;
+  final bool bisaPraPesan;
+  final String? namaWarung;
+
+  const MenuWarung({
+    required this.id,
+    required this.name,
+    this.description,
+    required this.category,
+    required this.price,
+    this.bisaPraPesan = false,
+    this.namaWarung,
+  });
+
+  factory MenuWarung.fromJson(Map<String, dynamic> j) => MenuWarung(
+        id: j['id'] as String,
+        name: j['name'] as String,
+        description: j['description'] as String?,
+        category: (j['category'] as String?) ?? 'Makanan',
+        price: _int(j['price']),
+        bisaPraPesan: (j['bisaPraPesan'] as bool?) ?? false,
+        namaWarung: (j['warung'] as Map?)?['name'] as String?,
+      );
+
+  @override
+  List<Object?> get props => [id];
+}
+
+class Warung extends Equatable {
+  final String id;
+  final String name;
+  final String? description;
+  final String? address;
+  final String? phone;
+  final String? whatsapp;
+  final String? jamBuka;
+  final String? imageUrl;
+  final double rating;
+  final double? distanceKm;
+  final List<MenuWarung> menu;
+
+  const Warung({
+    required this.id,
+    required this.name,
+    this.description,
+    this.address,
+    this.phone,
+    this.whatsapp,
+    this.jamBuka,
+    this.imageUrl,
+    this.rating = 5,
+    this.distanceKm,
+    this.menu = const [],
+  });
+
+  factory Warung.fromJson(Map<String, dynamic> j) => Warung(
+        id: j['id'] as String,
+        name: j['name'] as String,
+        description: j['description'] as String?,
+        address: j['address'] as String?,
+        phone: j['phone'] as String?,
+        whatsapp: j['whatsapp'] as String?,
+        jamBuka: j['jamBuka'] as String?,
+        imageUrl: j['imageUrl'] as String?,
+        rating: _dbl(j['rating']),
+        distanceKm: j['distanceKm'] == null ? null : _dbl(j['distanceKm']),
+        menu: ((j['menu'] as List?) ?? [])
+            .map((e) => MenuWarung.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
+  @override
+  List<Object?> get props => [id];
+}
+
+class SinyalTitik extends Equatable {
+  final String nama;
+  final int elevasi;
+  final String sinyalTerbaik;
+  final Map<String, String> operator;
+
+  const SinyalTitik({
+    required this.nama,
+    required this.elevasi,
+    required this.sinyalTerbaik,
+    required this.operator,
+  });
+
+  factory SinyalTitik.fromJson(Map<String, dynamic> j) => SinyalTitik(
+        nama: j['nama'] as String,
+        elevasi: _int(j['elevasi']),
+        sinyalTerbaik: (j['sinyalTerbaik'] as String?) ?? 'KOSONG',
+        operator: ((j['operator'] as Map?) ?? {}).map(
+          (k, v) => MapEntry(k.toString(), ((v as Map)['kuat'] ?? 'KOSONG').toString()),
+        ),
+      );
+
+  @override
+  List<Object?> get props => [nama, operator];
+}
+
+class PetaSinyal extends Equatable {
+  final String jalur;
+  final List<String> operator;
+  final String? titikTerakhirNama;
+  final int? titikTerakhirElevasi;
+  final List<SinyalTitik> titik;
+
+  const PetaSinyal({
+    required this.jalur,
+    required this.operator,
+    this.titikTerakhirNama,
+    this.titikTerakhirElevasi,
+    required this.titik,
+  });
+
+  factory PetaSinyal.fromJson(Map<String, dynamic> j) {
+    final t = j['titikSinyalTerakhir'] as Map?;
+    return PetaSinyal(
+      jalur: (j['jalur'] as String?) ?? '-',
+      operator: ((j['operator'] as List?) ?? []).map((e) => e.toString()).toList(),
+      titikTerakhirNama: t?['nama'] as String?,
+      titikTerakhirElevasi: t == null ? null : _int(t['elevasi']),
+      titik: ((j['titik'] as List?) ?? [])
+          .map((e) => SinyalTitik.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  @override
+  List<Object?> get props => [jalur, titik];
+}

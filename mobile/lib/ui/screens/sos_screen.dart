@@ -215,11 +215,48 @@ class SosScreen extends StatelessWidget {
                     title: const Text('Berbagi Lokasi Otomatis',
                         style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
                     subtitle: Text(
-                      'Kirim posisi tiap ${SosBloc.trackInterval.inMinutes} menit selama aplikasi terbuka, '
-                      'agar pos pemantau tahu jejak Anda.',
+                      state.autoTrack
+                          ? 'Dilaporkan tiap ${state.interval.inMinutes} menit selama aplikasi terbuka.'
+                          : 'Kirim posisi berkala agar pos pemantau tahu jejak Anda.',
                       style: const TextStyle(fontSize: 12, color: AppColors.muted),
                     ),
                   ),
+                  if (state.autoTrack) ...[
+                    const Divider(height: 18),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Jeda laporan',
+                          style: TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w700)),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: SosBloc.pilihanInterval
+                          .map((o) => ChoiceChip(
+                                selected: state.interval == o.$1,
+                                onSelected: (_) => context
+                                    .read<SosBloc>()
+                                    .add(SosAutoTrackToggled(true, interval: o.$1)),
+                                label: Text(o.$2,
+                                    style: const TextStyle(fontSize: 11.5)),
+                                selectedColor: AppColors.mossLight,
+                                backgroundColor: const Color(0xFFF1F5F9),
+                              ))
+                          .toList(),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'GPS termasuk perangkat paling haus daya di ponsel. Jeda yang '
+                      'lebih panjang menghemat baterai secara berarti, dan bagi tim '
+                      'pencari selisih beberapa menit biasanya tidak mengubah area '
+                      'pencarian. Pilih 5 menit hanya bila cuaca memburuk atau '
+                      'rombongan terpisah.',
+                      style: TextStyle(
+                          fontSize: 11, color: AppColors.muted, height: 1.5),
+                    ),
+                  ],
                   if (state.queued > 0) ...[
                     const Divider(height: 18),
                     Row(

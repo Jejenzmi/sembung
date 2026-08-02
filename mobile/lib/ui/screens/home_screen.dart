@@ -7,6 +7,8 @@ import '../../core/formatters.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../widgets/common.dart';
+import '../widgets/lembar_tarik.dart';
+import '../widgets/kartu_posisi.dart';
 import '../widgets/wajib_masuk.dart';
 import 'content_detail_screen.dart';
 import 'epass_screen.dart';
@@ -14,6 +16,8 @@ import 'inbox_screen.dart';
 import 'kompas_screen.dart';
 import 'shalat_screen.dart';
 import 'penginapan_screen.dart';
+import 'sinyal_screen.dart';
+import 'warung_screen.dart';
 import 'trail_detail_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -61,11 +65,13 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 if (user == null) const SliverToBoxAdapter(child: SpandukTamu()),
+                SliverToBoxAdapter(child: _AjakanBeliTiket(trails: state.trails)),
                 if (state.activeBookings.isNotEmpty)
                   SliverToBoxAdapter(
                     child: _ActiveBookingCard(booking: state.activeBookings.first),
                   ),
                 SliverToBoxAdapter(child: _QuickActions(onOpenTab: onOpenTab)),
+                const SliverToBoxAdapter(child: KartuPosisi()),
                 if (state.cuaca != null)
                   SliverToBoxAdapter(child: _CuacaCard(cuaca: state.cuaca!)),
                 if (state.capacity != null)
@@ -370,7 +376,9 @@ class _QuickActions extends StatelessWidget {
       ('🚨', 'Tombol SOS', 3, null),
       ('🧭', 'Kompas', -1, const KompasScreen()),
       ('🕌', 'Jadwal Salat', -1, const ShalatScreen()),
-      ('👤', 'Profil', 4, null),
+      ('🍜', 'Makan', -1, const WarungScreen()),
+      ('📶', 'Sinyal', -1, const SinyalScreen()),
+      ('🏠', 'Menginap', -1, const PenginapanScreen()),
     ];
 
     Widget kartu((String, String, int, Widget?) item) => AppCard(
@@ -400,7 +408,7 @@ class _QuickActions extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
       child: Column(
         children: [
-          for (var baris = 0; baris < 2; baris++) ...[
+          for (var baris = 0; baris < 3; baris++) ...[
             if (baris > 0) const SizedBox(height: 10),
             Row(
               children: [
@@ -679,6 +687,126 @@ class _TrailCard extends StatelessWidget {
 /// Kondisi tiap jalur hari ini: status, pendaki yang sedang di atas, sisa
 /// kuota, dan catatan terakhir jagawana — informasi yang menentukan apakah
 /// seseorang jadi naik atau tidak.
+/// Jalan masuk utama membeli tiket. Sebelumnya pemesanan hanya bisa ditemukan
+/// lewat detail jalur, sehingga pengguna baru kebingungan harus mulai dari mana.
+class _AjakanBeliTiket extends StatelessWidget {
+  const _AjakanBeliTiket({required this.trails});
+  final List<Trail> trails;
+
+  @override
+  Widget build(BuildContext context) {
+    final terbuka = trails.where((t) => t.status != 'CLOSED').toList();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+      child: Material(
+        borderRadius: BorderRadius.circular(20),
+        color: AppColors.ember,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () {
+            if (terbuka.isEmpty) {
+              showSnack(context, 'Semua jalur sedang ditutup', error: true);
+              return;
+            }
+            if (terbuka.length == 1) {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => TrailDetailScreen(trail: terbuka.first),
+              ));
+              return;
+            }
+            // Lebih dari satu jalur: biarkan pendaki memilih dulu.
+            lembarTarik<void>(
+              context: context,
+              judul: 'Beli Tiket Masuk',
+              keterangan: 'Pilih jalur pendakian yang ingin Anda tempuh',
+              isi: (ctx, _) => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: terbuka
+                    .map((t) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: AppCard(
+                            color: const Color(0xFFF8FAFC),
+                            onTap: () {
+                              Navigator.of(ctx).pop();
+                              Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => TrailDetailScreen(trail: t),
+                              ));
+                            },
+                            child: Row(
+                              children: [
+                                NetImage(t.imageUrl,
+                                    height: 46, width: 46, radius: 13),
+                                const SizedBox(width: 13),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(t.name,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 14)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${t.difficultyLabel} · ${t.distanceKm} km · '
+                                        'kuota ${t.dailyQuota}/hari',
+                                        style: const TextStyle(
+                                            fontSize: 11.5, color: AppColors.muted),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.chevron_right,
+                                    color: AppColors.muted),
+                              ],
+                            ),
+                          ),
+                        ))
+                    .toList(),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(17),
+            child: Row(
+              children: [
+                Container(
+                  height: 46,
+                  width: 46,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.22),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text('🎫', style: TextStyle(fontSize: 22)),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Beli Tiket Masuk',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16)),
+                      SizedBox(height: 3),
+                      Text('Tiket, izin berkemah, sewa alat, pemandu, dan menginap '
+                          'dalam satu pembayaran',
+                          style: TextStyle(color: Colors.white, fontSize: 11.5, height: 1.35)),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _KondisiJalurSeksi extends StatelessWidget {
   const _KondisiJalurSeksi({required this.kondisi});
   final KondisiKawasan kondisi;

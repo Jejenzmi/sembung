@@ -31,6 +31,7 @@ export interface DraftBooking {
   rentals?: DraftLine[];
   guides?: DraftLine[];
   homestays?: DraftLine[];
+  foods?: DraftLine[];
   voucherCode?: string;
   notes?: string;
 }
@@ -134,6 +135,29 @@ export async function priceDraft(draft: DraftBooking) {
       days: malam,
       unitPrice: h.pricePerNight,
       amount: h.pricePerNight * line.qty * malam,
+    });
+  }
+
+  const foodIds = (draft.foods ?? []).map((f) => f.id);
+  const foods = foodIds.length
+    ? await prisma.menuWarung.findMany({
+        where: { id: { in: foodIds }, isActive: true, bisaPraPesan: true },
+        include: { warung: { select: { name: true } } },
+      })
+    : [];
+  for (const line of draft.foods ?? []) {
+    const m = foods.find((x) => x.id === line.id);
+    if (!m) throw new AppError('Paket makan tidak tersedia untuk pra-pesan');
+    if (line.qty < 1) continue;
+    // Sekali pesan, bukan per hari: porsi disiapkan saat rombongan tiba.
+    lines.push({
+      refType: ItemRef.FOOD,
+      refId: m.id,
+      name: `${m.name} · ${m.warung.name}`,
+      qty: line.qty,
+      days: 1,
+      unitPrice: m.price,
+      amount: m.price * line.qty,
     });
   }
 

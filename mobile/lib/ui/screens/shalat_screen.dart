@@ -211,32 +211,31 @@ class _ShalatScreenState extends State<ShalatScreen> {
           ),
 
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _gantiTanggal(_tanggal.subtract(const Duration(days: 1))),
-                  icon: const Icon(Icons.chevron_left, size: 18),
-                  label: const Text('Kemarin'),
+          // Ikon dibuang dan teks dipaksa satu baris: dengan ikon, label
+          // terpotong jadi dua baris di layar sempit dan terlihat berantakan.
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                _TombolTanggal(
+                  label: 'Kemarin',
+                  onTap: () => _gantiTanggal(_tanggal.subtract(const Duration(days: 1))),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _gantiTanggal(DateTime.now()),
-                  icon: const Icon(Icons.today, size: 18),
-                  label: const Text('Hari ini'),
+                _TombolTanggal(
+                  label: 'Hari ini',
+                  aktif: _hariIni,
+                  onTap: () => _gantiTanggal(DateTime.now()),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _gantiTanggal(_tanggal.add(const Duration(days: 1))),
-                  icon: const Icon(Icons.chevron_right, size: 18),
-                  label: const Text('Besok'),
+                _TombolTanggal(
+                  label: 'Besok',
+                  onTap: () => _gantiTanggal(_tanggal.add(const Duration(days: 1))),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
 
           const SizedBox(height: 14),
@@ -560,6 +559,51 @@ class _BarisWaktu extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Satu tombol pada pemilih tanggal. Teks dipaksa satu baris agar barisnya
+/// tetap rapi di layar sempit.
+class _TombolTanggal extends StatelessWidget {
+  const _TombolTanggal({
+    required this.label,
+    required this.onTap,
+    this.aktif = false,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final bool aktif;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Material(
+        color: aktif ? Colors.white : Colors.transparent,
+        borderRadius: BorderRadius.circular(11),
+        elevation: aktif ? 1 : 0,
+        shadowColor: Colors.black26,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(11),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 11),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: aktif ? FontWeight.w800 : FontWeight.w600,
+                color: aktif ? AppColors.mossDark : AppColors.muted,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

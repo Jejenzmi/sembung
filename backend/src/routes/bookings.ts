@@ -36,6 +36,7 @@ const draftSchema = z.object({
   rentals: z.array(lineSchema).optional(),
   guides: z.array(lineSchema).optional(),
   homestays: z.array(lineSchema).optional(),
+  foods: z.array(lineSchema).optional(),
   voucherCode: z.string().min(3).optional(),
   notes: z.string().optional(),
 });

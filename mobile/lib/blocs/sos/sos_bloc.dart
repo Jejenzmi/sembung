@@ -38,9 +38,11 @@ class SosPinged extends SosEvent {
 /// Turns the periodic position reporting on or off.
 class SosAutoTrackToggled extends SosEvent {
   final bool enabled;
-  const SosAutoTrackToggled(this.enabled);
+  /// Jeda antar laporan lokasi. Semakin rapat, semakin boros baterai.
+  final Duration? interval;
+  const SosAutoTrackToggled(this.enabled, {this.interval});
   @override
-  List<Object?> get props => [enabled];
+  List<Object?> get props => [enabled, interval];
 }
 
 /// Retries anything that was queued while the phone had no signal.
@@ -60,6 +62,7 @@ class SosState extends Equatable {
   final List<SosAlert> history;
   final SosAlert? lastAlert;
   final bool autoTrack;
+  final Duration interval;
   final int queued;
   final String? error;
   final String? notice;
@@ -74,6 +77,7 @@ class SosState extends Equatable {
     this.history = const [],
     this.lastAlert,
     this.autoTrack = false,
+    this.interval = SosBloc.trackInterval,
     this.queued = 0,
     this.error,
     this.notice,
@@ -91,6 +95,7 @@ class SosState extends Equatable {
     List<SosAlert>? history,
     SosAlert? lastAlert,
     bool? autoTrack,
+    Duration? interval,
     int? queued,
     String? error,
     String? notice,
@@ -106,6 +111,7 @@ class SosState extends Equatable {
         history: history ?? this.history,
         lastAlert: lastAlert ?? this.lastAlert,
         autoTrack: autoTrack ?? this.autoTrack,
+        interval: interval ?? this.interval,
         queued: queued ?? this.queued,
         error: clearMessages ? null : (error ?? this.error),
         notice: clearMessages ? null : (notice ?? this.notice),
@@ -122,6 +128,7 @@ class SosState extends Equatable {
         history,
         lastAlert,
         autoTrack,
+        interval,
         queued,
         error,
         notice,
@@ -141,9 +148,17 @@ class SosBloc extends Bloc<SosEvent, SosState> {
   final SosRepository _repo;
   Timer? _autoTimer;
 
-  /// How often the app reports its position while auto-tracking is on. Short
-  /// enough to be useful to a search team, long enough to spare the battery.
-  static const trackInterval = Duration(minutes: 5);
+  /// Pilihan jeda laporan lokasi. GPS adalah salah satu perangkat paling haus
+  /// daya di ponsel, jadi jedanya dibuat bisa dipilih — bukan dipaksa rapat.
+  /// 15 menit dipakai sebagai bawaan karena cukup bagi tim pencari untuk
+  /// mempersempit area, sementara baterai tetap awet seharian pendakian.
+  static const pilihanInterval = <(Duration, String)>[
+    (Duration(minutes: 5), 'Tiap 5 menit · paling boros'),
+    (Duration(minutes: 15), 'Tiap 15 menit · seimbang'),
+    (Duration(minutes: 30), 'Tiap 30 menit · paling hemat'),
+  ];
+
+  static const trackInterval = Duration(minutes: 15);
 
   @override
   Future<void> close() {
@@ -172,8 +187,10 @@ class SosBloc extends Bloc<SosEvent, SosState> {
 
   void _onAutoTrack(SosAutoTrackToggled event, Emitter<SosState> emit) {
     _autoTimer?.cancel();
+    final jeda = event.interval ?? state.interval;
+
     if (event.enabled) {
-      _autoTimer = Timer.periodic(trackInterval, (_) {
+      _autoTimer = Timer.periodic(jeda, (_) {
         add(const SosLocationRefreshed());
         add(const SosPinged());
       });
@@ -181,8 +198,9 @@ class SosBloc extends Bloc<SosEvent, SosState> {
     }
     emit(state.copyWith(
       autoTrack: event.enabled,
+      interval: jeda,
       notice: event.enabled
-          ? 'Berbagi lokasi otomatis aktif — tiap ${trackInterval.inMinutes} menit'
+          ? 'Berbagi lokasi aktif — dilaporkan tiap ${jeda.inMinutes} menit'
           : 'Berbagi lokasi otomatis dimatikan',
     ));
   }
