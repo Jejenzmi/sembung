@@ -7,6 +7,7 @@ import '../../core/config.dart';
 import '../../core/formatters.dart';
 import '../../core/theme.dart';
 import '../widgets/common.dart';
+import '../widgets/lembar_tarik.dart';
 
 const _sosTypes = <(String, String, String)>[
   ('INJURY', '🩹', 'Cedera'),
@@ -24,71 +25,48 @@ class SosScreen extends StatelessWidget {
     var type = 'OTHER';
     final message = TextEditingController();
 
-    final send = await showModalBottomSheet<bool>(
+    final send = await lembarTarik<bool>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.fromLTRB(
-            20, 20, 20, MediaQuery.of(sheetContext).viewInsets.bottom + 24),
-        child: StatefulBuilder(
-          builder: (context, setSheetState) => Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text('Jenis Keadaan Darurat',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              const Text(
-                'Pilih yang paling sesuai agar tim membawa perlengkapan yang tepat.',
-                style: TextStyle(fontSize: 12.5, color: AppColors.muted),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _sosTypes
-                    .map(
-                      (t) => ChoiceChip(
-                        selected: type == t.$1,
-                        onSelected: (_) => setSheetState(() => type = t.$1),
-                        label: Text('${t.$2} ${t.$3}'),
-                        selectedColor: AppColors.mossLight,
-                        labelStyle: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: type == t.$1 ? AppColors.mossDark : Colors.black87,
-                        ),
-                        backgroundColor: const Color(0xFFF1F5F9),
-                      ),
-                    )
-                    .toList(),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: message,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Keterangan singkat',
-                  hintText: 'Contoh: kaki terkilir di Pos 3, tidak bisa berjalan',
-                ),
-              ),
-              const SizedBox(height: 20),
-              FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-                onPressed: () => Navigator.pop(sheetContext, true),
-                child: const Text('KIRIM SINYAL DARURAT'),
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => Navigator.pop(sheetContext, false),
-                child: const Text('Batal'),
-              ),
-            ],
+      judul: 'Jenis Keadaan Darurat',
+      keterangan: 'Pilih yang paling sesuai agar tim membawa perlengkapan yang tepat',
+      isi: (ctx, setSheetState) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _sosTypes
+                .map(
+                  (t) => ChoiceChip(
+                    selected: type == t.$1,
+                    onSelected: (_) => setSheetState(() => type = t.$1),
+                    label: Text('${t.$2} ${t.$3}'),
+                    selectedColor: AppColors.mossLight,
+                    labelStyle: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: type == t.$1 ? AppColors.mossDark : Colors.black87,
+                    ),
+                    backgroundColor: const Color(0xFFF1F5F9),
+                  ),
+                )
+                .toList(),
           ),
-        ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: message,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'Keterangan singkat',
+              hintText: 'Contoh: kaki terkilir di Pos 3, tidak bisa berjalan',
+            ),
+          ),
+          const SizedBox(height: 22),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('KIRIM SINYAL DARURAT'),
+          ),
+        ],
       ),
     );
 

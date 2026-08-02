@@ -11,6 +11,7 @@ import 'blocs/trips/trips_bloc.dart';
 import 'core/api_client.dart';
 import 'core/theme.dart';
 import 'data/repositories.dart';
+import 'data/shalat_repository.dart';
 import 'ui/screens/login_screen.dart';
 import 'ui/screens/shell_screen.dart';
 
@@ -32,6 +33,7 @@ class SembungApp extends StatelessWidget {
     final bookingRepo = BookingRepository(api);
     final sosRepo = SosRepository(api);
     final inboxRepo = InboxRepository(api);
+    final shalatRepo = ShalatRepository(api);
 
     return MultiRepositoryProvider(
       providers: [
@@ -41,6 +43,7 @@ class SembungApp extends StatelessWidget {
         RepositoryProvider.value(value: bookingRepo),
         RepositoryProvider.value(value: sosRepo),
         RepositoryProvider.value(value: inboxRepo),
+        RepositoryProvider.value(value: shalatRepo),
       ],
       child: MultiBlocProvider(
         providers: [

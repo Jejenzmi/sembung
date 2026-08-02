@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, errMsg, tanggal } from '../lib/api'
 import type { User } from '../lib/types'
-import { Empty, Loading, Modal, PageHeader } from '../components/ui'
+import { Empty, Loading, Modal, PageHeader , ConfirmDialog } from '../components/ui'
 
 const ROLES = [
   ['ADMIN', 'Administrator'],
@@ -28,6 +28,7 @@ export default function Users() {
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState('')
+  const [akanDinonaktifkan, setAkanDinonaktifkan] = useState<User | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -60,9 +61,10 @@ export default function Users() {
     }
   }
 
-  const deactivate = async (u: User) => {
-    if (!confirm(`Nonaktifkan akun ${u.name}?`)) return
-    await api.delete(`/users/${u.id}`)
+  const deactivate = async () => {
+    if (!akanDinonaktifkan) return
+    await api.delete(`/users/${akanDinonaktifkan.id}`)
+    setAkanDinonaktifkan(null)
     load()
   }
 
@@ -166,7 +168,7 @@ export default function Users() {
                           Ubah
                         </button>
                         {u.isActive && (
-                          <button className="btn-ghost !px-2 !py-1 !text-xs !text-rose-600" onClick={() => deactivate(u)}>
+                          <button className="btn-ghost !px-2 !py-1 !text-xs !text-rose-600" onClick={() => setAkanDinonaktifkan(u)}>
                             Nonaktifkan
                           </button>
                         )}
@@ -201,6 +203,16 @@ export default function Users() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!akanDinonaktifkan}
+        title="Nonaktifkan akun?"
+        message={`${akanDinonaktifkan?.name ?? ''} tidak akan bisa masuk lagi. Datanya tetap tersimpan dan bisa diaktifkan kembali.`}
+        confirmLabel="Ya, nonaktifkan"
+        danger
+        onConfirm={deactivate}
+        onCancel={() => setAkanDinonaktifkan(null)}
+      />
 
       <Modal open={!!form} title={form?.id ? 'Ubah Pengguna' : 'Pengguna Baru'} onClose={() => setForm(null)}>
         {form && (

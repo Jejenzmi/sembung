@@ -154,6 +154,8 @@ model User {
   emergencyName    String?
   emergencyPhone   String?
   avatarUrl        String?
+  /// Subjek Google (sub) bila akun ditautkan lewat Masuk dengan Google.
+  googleId         String?   @unique
   isActive         Boolean   @default(true)
   lastLoginAt      DateTime?
   createdAt        DateTime  @default(now())
@@ -168,6 +170,7 @@ model User {
   reviews          Review[]
   guideReviews     GuideReview[]
   notifications    Notification[]
+  devices          DeviceToken[]
   vouchersUsed     VoucherUsage[]
   refundsRequested Refund[]        @relation("RefundRequester")
   refundsProcessed Refund[]        @relation("RefundProcessor")
@@ -535,6 +538,19 @@ model GuideReview {
 
   @@unique([userId, guideId, bookingId])
   @@index([guideId])
+}
+
+/// Token perangkat untuk push notification (FCM).
+model DeviceToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String   @default("android")
+  lastSeen  DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Setting {

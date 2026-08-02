@@ -1,6 +1,7 @@
 import { NotifChannel, NotifStatus, Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { emit, emitTo } from '../lib/realtime';
+import { kirimPush } from './push';
 
 interface Outgoing {
   subject: string;
@@ -117,5 +118,21 @@ export async function notifyUser(
     },
   });
   emitTo(`user:${userId}`, 'inbox:new', { id: row.id, subject: msg.subject });
+
+  // Push hanya pelengkap; pesannya sudah aman tersimpan di kotak masuk.
+  kirimPush(userId, {
+    judul: msg.subject,
+    pesan: msg.body.split('\n')[0].slice(0, 160),
+    data: { refType: msg.refType ?? '', refId: msg.refId ?? '', notifId: row.id },
+  })
+    .then((h) => {
+      if (h.terkirim === 0 && h.alasan) {
+        prisma.notification
+          .update({ where: { id: row.id }, data: { error: `Push dilewati: ${h.alasan}` } })
+          .catch(() => undefined);
+      }
+    })
+    .catch((e) => console.error('Push gagal:', e));
+
   return row;
 }

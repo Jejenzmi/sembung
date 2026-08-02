@@ -15,6 +15,10 @@ export const DEFAULTS: Record<string, string> = {
   LAST_ASCENT_HOUR: '16',
   // Desa Sukajaya, Kec. Sukatani, Kab. Purwakarta — desa terdekat kawasan.
   BMKG_ADM4: '32.14.05.2012',
+  // KAB. PURWAKARTA pada basis data jadwal salat Kemenag (api.myquran.com).
+  KEMENAG_KOTA_ID: '1214',
+  PARK_LAT: '-6.5312',
+  PARK_LON: '107.3585',
 };
 
 const TTL_MS = 30_000;

@@ -6,6 +6,8 @@ import '../../core/formatters.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../widgets/common.dart';
+import '../widgets/lembar_tarik.dart';
+import '../../core/pengingat.dart';
 import 'epass_screen.dart';
 
 class TripsScreen extends StatelessWidget {
@@ -45,6 +47,17 @@ class TripsScreen extends StatelessWidget {
                     context.read<TripsBloc>().add(const TripsRefreshed()),
               );
             }
+            // Jadwalkan pengingat H-1 untuk setiap pendakian yang akan datang.
+            for (final b in state.upcoming) {
+              if (b.status == 'PAID') {
+                Pengingat.jadwalkanPendakian(
+                  kodeBooking: b.code,
+                  namaJalur: b.trailName,
+                  tanggalMulai: b.startDate,
+                );
+              }
+            }
+
             return TabBarView(
               children: [
                 _List(bookings: state.upcoming, emptyText: 'Belum ada pendakian terjadwal'),
@@ -89,29 +102,17 @@ class _TripCard extends StatelessWidget {
   final Booking booking;
 
   Future<void> _confirmCancel(BuildContext context) async {
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Batalkan booking?'),
-        content: Text(
-          'Booking ${booking.code} akan dibatalkan dan alat sewa dikembalikan ke stok. '
+    final yes = await konfirmasi(
+      context,
+      judul: 'Batalkan booking?',
+      pesan: 'Booking ${booking.code} akan dibatalkan dan alat sewa dikembalikan ke stok. '
           'Tindakan ini tidak dapat dibatalkan.'
           '${booking.status == 'PAID' ? '\n\nKarena booking ini sudah lunas, pengajuan pengembalian dana otomatis dibuat dan menunggu persetujuan pengelola.' : ''}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Tidak'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Ya, batalkan'),
-          ),
-        ],
-      ),
+      tombolYa: 'Ya, batalkan',
+      tombolTidak: 'Tidak',
+      berbahaya: true,
     );
-    if (yes == true && context.mounted) {
+    if (yes && context.mounted) {
       context.read<TripsBloc>().add(TripCancelled(booking.id));
     }
   }
@@ -119,44 +120,40 @@ class _TripCard extends StatelessWidget {
   Future<void> _review(BuildContext context) async {
     var rating = 5;
     final comment = TextEditingController();
-    final ok = await showDialog<bool>(
+    final ok = await lembarTarik<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Beri Ulasan'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  5,
-                  (i) => IconButton(
-                    onPressed: () => setDialogState(() => rating = i + 1),
-                    icon: Icon(
-                      i < rating ? Icons.star : Icons.star_border,
-                      color: const Color(0xFFF59E0B),
-                    ),
-                  ),
+      judul: 'Beri Ulasan',
+      keterangan: 'Pendakian ${booking.trailName}',
+      isi: (ctx, setSheetState) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              5,
+              (i) => IconButton(
+                iconSize: 34,
+                onPressed: () => setSheetState(() => rating = i + 1),
+                icon: Icon(
+                  i < rating ? Icons.star_rounded : Icons.star_border_rounded,
+                  color: const Color(0xFFF59E0B),
                 ),
               ),
-              TextField(
-                controller: comment,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                    hintText: 'Bagaimana pengalaman pendakian Anda?'),
-              ),
-            ],
+            ),
           ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Batal')),
-            FilledButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Kirim')),
-          ],
-        ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: comment,
+            maxLines: 3,
+            decoration: const InputDecoration(
+                hintText: 'Bagaimana pengalaman pendakian Anda?'),
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Kirim Ulasan'),
+          ),
+        ],
       ),
     );
     if (ok == true && context.mounted) {

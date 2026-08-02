@@ -5,6 +5,7 @@ import '../../blocs/auth/auth_bloc.dart';
 import '../../core/config.dart';
 import '../../core/theme.dart';
 import '../widgets/common.dart';
+import '../widgets/lembar_tarik.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -18,42 +19,29 @@ class ProfileScreen extends StatelessWidget {
     final emName = TextEditingController(text: user.emergencyName ?? '');
     final emPhone = TextEditingController(text: user.emergencyPhone ?? '');
 
-    final saved = await showModalBottomSheet<bool>(
+    final saved = await lembarTarik<bool>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.fromLTRB(
-            20, 20, 20, MediaQuery.of(sheetContext).viewInsets.bottom + 24),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text('Ubah Profil',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 16),
-              _input(name, 'Nama Lengkap'),
-              _input(email, 'Email'),
-              _input(nik, 'NIK'),
-              _input(address, 'Alamat'),
-              const SizedBox(height: 6),
-              const Text('Kontak Darurat',
-                  style: TextStyle(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              _input(emName, 'Nama Kontak Darurat'),
-              _input(emPhone, 'No. HP Kontak Darurat'),
-              const SizedBox(height: 10),
-              FilledButton(
-                onPressed: () => Navigator.pop(sheetContext, true),
-                child: const Text('Simpan'),
-              ),
-            ],
+      judul: 'Ubah Profil',
+      keterangan: 'Data ini dipakai tim SAR bila terjadi keadaan darurat',
+      isi: (ctx, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _input(name, 'Nama Lengkap'),
+          _input(email, 'Email'),
+          _input(nik, 'NIK'),
+          _input(address, 'Alamat'),
+          const SizedBox(height: 6),
+          const Text('Kontak Darurat',
+              style: TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
+          _input(emName, 'Nama Kontak Darurat'),
+          _input(emPhone, 'No. HP Kontak Darurat'),
+          const SizedBox(height: 14),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Simpan'),
           ),
-        ),
+        ],
       ),
     );
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, errMsg, rupiah } from '../lib/api'
 import type { Gate, Guide, RentalItem, TicketType, Trail } from '../lib/types'
-import { Loading, Modal, PageHeader } from '../components/ui'
+import { Loading, Modal, PageHeader , ConfirmDialog } from '../components/ui'
 
 type Tab = 'tickets' | 'rentals' | 'guides' | 'gates'
 
@@ -84,6 +84,7 @@ export default function Catalog() {
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState('')
+  const [hapus, setHapus] = useState<Record<string, unknown> | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -127,13 +128,15 @@ export default function Catalog() {
     }
   }
 
-  const remove = async (row: Record<string, unknown>) => {
-    if (!confirm(`Hapus "${row.name}"?`)) return
+  const remove = async () => {
+    if (!hapus) return
     try {
-      await api.delete(`/catalog/${tab}/${row.id}`)
+      await api.delete(`/catalog/${tab}/${hapus.id}`)
+      setHapus(null)
       load()
     } catch (e) {
-      alert(errMsg(e))
+      setError(errMsg(e))
+      setHapus(null)
     }
   }
 
@@ -209,7 +212,7 @@ export default function Catalog() {
                         >
                           Ubah
                         </button>
-                        <button className="btn-ghost !px-2 !py-1 !text-xs !text-rose-600" onClick={() => remove(row)}>
+                        <button className="btn-ghost !px-2 !py-1 !text-xs !text-rose-600" onClick={() => setHapus(row)}>
                           Hapus
                         </button>
                       </div>
@@ -221,6 +224,16 @@ export default function Catalog() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!hapus}
+        title="Hapus data ini?"
+        message={`"${hapus?.name ?? ''}" akan dihapus permanen dari katalog.`}
+        confirmLabel="Ya, hapus"
+        danger
+        onConfirm={remove}
+        onCancel={() => setHapus(null)}
+      />
 
       <Modal open={!!form} title={form?.id ? 'Ubah Data' : 'Tambah Data'} onClose={() => setForm(null)}>
         {form && (

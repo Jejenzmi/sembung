@@ -3,7 +3,7 @@ import { MapContainer, Marker, Polyline, Popup, TileLayer } from 'react-leaflet'
 import L from 'leaflet'
 import { api, errMsg } from '../lib/api'
 import type { Trail, TrailPoint } from '../lib/types'
-import { Empty, Loading, Modal, PageHeader, StatusBadge } from '../components/ui'
+import { Empty, Loading, Modal, PageHeader, StatusBadge , ConfirmDialog } from '../components/ui'
 import ImageUpload from '../components/ImageUpload'
 
 const POINT_TYPES = [
@@ -52,6 +52,7 @@ export default function Trails() {
   const [trailForm, setTrailForm] = useState<Record<string, unknown> | null>(null)
   const [pointForm, setPointForm] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState('')
+  const [titikDihapus, setTitikDihapus] = useState<TrailPoint | null>(null)
 
   const loadTrails = () =>
     api
@@ -114,9 +115,10 @@ export default function Trails() {
     }
   }
 
-  const removePoint = async (p: TrailPoint) => {
-    if (!confirm(`Hapus titik "${p.name}"?`)) return
-    await api.delete(`/trails/points/${p.id}`)
+  const removePoint = async () => {
+    if (!titikDihapus) return
+    await api.delete(`/trails/points/${titikDihapus.id}`)
+    setTitikDihapus(null)
     if (selected) openTrail(selected)
   }
 
@@ -273,7 +275,7 @@ export default function Trails() {
                             </button>
                             <button
                               className="btn-ghost !px-2 !py-1 !text-xs !text-rose-600"
-                              onClick={() => removePoint(p)}
+                              onClick={() => setTitikDihapus(p)}
                             >
                               Hapus
                             </button>
@@ -292,6 +294,16 @@ export default function Trails() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!titikDihapus}
+        title="Hapus titik peta?"
+        message={`"${titikDihapus?.name ?? ''}" akan hilang dari peta jalur dan dari paket peta offline pendaki.`}
+        confirmLabel="Ya, hapus"
+        danger
+        onConfirm={removePoint}
+        onCancel={() => setTitikDihapus(null)}
+      />
 
       <Modal
         open={!!trailForm}

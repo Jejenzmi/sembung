@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, errMsg, rupiah, tanggal } from '../lib/api'
 import type { Trail } from '../lib/types'
-import { Empty, Loading, Modal, PageHeader } from '../components/ui'
+import { Empty, Loading, Modal, PageHeader , ConfirmDialog } from '../components/ui'
 
 interface Voucher {
   code: string
@@ -43,6 +43,7 @@ export default function Vouchers() {
   const [form, setForm] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState('')
   const [flash, setFlash] = useState('')
+  const [akanDihapus, setAkanDihapus] = useState<Voucher | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -80,10 +81,11 @@ export default function Vouchers() {
     }
   }
 
-  const hapus = async (v: Voucher) => {
-    if (!confirm(`Hapus voucher ${v.code}?`)) return
-    const { data } = await api.delete(`/vouchers/${v.code}`)
+  const hapus = async () => {
+    if (!akanDihapus) return
+    const { data } = await api.delete(`/vouchers/${akanDihapus.code}`)
     setFlash(data.message)
+    setAkanDihapus(null)
     load()
   }
 
@@ -176,7 +178,7 @@ export default function Vouchers() {
                           </button>
                           <button
                             className="btn-ghost !px-2 !py-1 !text-xs !text-rose-600"
-                            onClick={() => hapus(v)}
+                            onClick={() => setAkanDihapus(v)}
                           >
                             Hapus
                           </button>
@@ -192,6 +194,16 @@ export default function Vouchers() {
           <Empty text="Belum ada voucher" emoji="🎫" />
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!akanDihapus}
+        title="Hapus voucher?"
+        message={`Voucher ${akanDihapus?.code ?? ''} akan dihapus. Bila pernah dipakai, sistem hanya menonaktifkannya agar jejak diskon pada laporan tetap utuh.`}
+        confirmLabel="Ya, hapus"
+        danger
+        onConfirm={hapus}
+        onCancel={() => setAkanDihapus(null)}
+      />
 
       <Modal open={!!form} title="Voucher" onClose={() => setForm(null)} wide>
         {form && (

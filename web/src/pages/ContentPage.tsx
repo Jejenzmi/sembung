@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, errMsg, tanggal } from '../lib/api'
 import type { Content } from '../lib/types'
-import { Empty, Loading, Modal, PageHeader } from '../components/ui'
+import { Empty, Loading, Modal, PageHeader , ConfirmDialog } from '../components/ui'
 import ImageUpload from '../components/ImageUpload'
 
 const CATEGORY = [
@@ -28,6 +28,7 @@ export default function ContentPage() {
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState('')
+  const [akanDihapus, setAkanDihapus] = useState<Content | null>(null)
 
   const load = () => {
     setLoading(true)
@@ -52,9 +53,10 @@ export default function ContentPage() {
     }
   }
 
-  const remove = async (c: Content) => {
-    if (!confirm(`Hapus konten "${c.title}"?`)) return
-    await api.delete(`/content/${c.id}`)
+  const remove = async () => {
+    if (!akanDihapus) return
+    await api.delete(`/content/${akanDihapus.id}`)
+    setAkanDihapus(null)
     load()
   }
 
@@ -98,7 +100,7 @@ export default function ContentPage() {
                   >
                     Ubah
                   </button>
-                  <button className="btn-ghost !text-xs !text-rose-600" onClick={() => remove(c)}>
+                  <button className="btn-ghost !text-xs !text-rose-600" onClick={() => setAkanDihapus(c)}>
                     Hapus
                   </button>
                 </div>
@@ -111,6 +113,16 @@ export default function ContentPage() {
           <Empty text="Belum ada konten" />
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!akanDihapus}
+        title="Hapus konten?"
+        message={`"${akanDihapus?.title ?? ''}" akan dihapus dan tidak lagi tampil di aplikasi pendaki.`}
+        confirmLabel="Ya, hapus"
+        danger
+        onConfirm={remove}
+        onCancel={() => setAkanDihapus(null)}
+      />
 
       <Modal open={!!form} title={form?.id ? 'Ubah Konten' : 'Konten Baru'} onClose={() => setForm(null)} wide>
         {form && (

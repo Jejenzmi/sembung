@@ -53,6 +53,17 @@ class AuthRepository {
     return user;
   }
 
+  /// Menukar ID token Google dengan sesi aplikasi.
+  Future<({AppUser user, bool perluLengkapiProfil})> masukGoogle(String idToken) async {
+    final data = await api.post('/auth/google', {'idToken': idToken})
+        as Map<String, dynamic>;
+    final user = await _persist(data);
+    return (
+      user: user,
+      perluLengkapiProfil: (data['perluLengkapiProfil'] as bool?) ?? false,
+    );
+  }
+
   Future<AppUser> me() async {
     final data = await api.get('/auth/me') as Map<String, dynamic>;
     await api.prefs.setString(_userKey, jsonEncode(data));

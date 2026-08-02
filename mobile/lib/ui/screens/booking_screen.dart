@@ -6,6 +6,7 @@ import '../../core/formatters.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../widgets/common.dart';
+import '../widgets/lembar_tarik.dart';
 import 'payment_screen.dart';
 
 class BookingScreen extends StatelessWidget {
@@ -227,78 +228,64 @@ class _MembersSection extends StatelessWidget {
     final ageCtrl = TextEditingController();
     var gender = 'L';
 
-    final member = await showModalBottomSheet<BookingMember>(
+    final member = await lembarTarik<BookingMember>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.fromLTRB(
-            20, 20, 20, MediaQuery.of(sheetContext).viewInsets.bottom + 20),
-        child: StatefulBuilder(
-          builder: (context, setSheetState) => Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+      judul: 'Tambah Anggota',
+      keterangan: 'Data ini dipakai petugas pos gerbang dan tim SAR',
+      isi: (ctx, setSheetState) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: nameCtrl,
+            decoration: const InputDecoration(labelText: 'Nama Lengkap'),
+            textCapitalization: TextCapitalization.words,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: nikCtrl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'NIK (opsional)'),
+          ),
+          const SizedBox(height: 12),
+          Row(
             children: [
-              const Text('Tambah Anggota',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 16),
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(labelText: 'Nama Lengkap'),
-                textCapitalization: TextCapitalization.words,
+              Expanded(
+                child: TextField(
+                  controller: ageCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Usia'),
+                ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: nikCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'NIK (opsional)'),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: ageCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Usia'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: gender,
-                      decoration:
-                          const InputDecoration(labelText: 'Jenis Kelamin'),
-                      items: const [
-                        DropdownMenuItem(value: 'L', child: Text('Laki-laki')),
-                        DropdownMenuItem(value: 'P', child: Text('Perempuan')),
-                      ],
-                      onChanged: (v) => setSheetState(() => gender = v ?? 'L'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: () {
-                  if (nameCtrl.text.trim().length < 2) return;
-                  Navigator.of(sheetContext).pop(
-                    BookingMember(
-                      name: nameCtrl.text.trim(),
-                      nik: nikCtrl.text.trim(),
-                      age: int.tryParse(ageCtrl.text.trim()),
-                      gender: gender,
-                    ),
-                  );
-                },
-                child: const Text('Tambahkan'),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: gender,
+                  decoration: const InputDecoration(labelText: 'Jenis Kelamin'),
+                  items: const [
+                    DropdownMenuItem(value: 'L', child: Text('Laki-laki')),
+                    DropdownMenuItem(value: 'P', child: Text('Perempuan')),
+                  ],
+                  onChanged: (v) => setSheetState(() => gender = v ?? 'L'),
+                ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 22),
+          FilledButton(
+            onPressed: () {
+              if (nameCtrl.text.trim().length < 2) return;
+              Navigator.of(ctx).pop(
+                BookingMember(
+                  name: nameCtrl.text.trim(),
+                  nik: nikCtrl.text.trim(),
+                  age: int.tryParse(ageCtrl.text.trim()),
+                  gender: gender,
+                ),
+              );
+            },
+            child: const Text('Tambahkan'),
+          ),
+        ],
       ),
     );
 

@@ -13,3 +13,8 @@ const double kBasecampLng = 107.3585;
 
 const String kParkName = 'Kawasan Wisata Gunung Sembung';
 const String kSarPhone = '115';
+
+/// Client ID OAuth "Web application" dari Google Cloud / Firebase.
+/// Diisi saat build: --dart-define=GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+/// Selama kosong, tombol Masuk dengan Google disembunyikan.
+const String kGoogleClientId = String.fromEnvironment('GOOGLE_CLIENT_ID');

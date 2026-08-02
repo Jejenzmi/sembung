@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../blocs/auth/auth_bloc.dart';
+import '../../core/config.dart';
 import '../../core/theme.dart';
 import '../widgets/common.dart';
 import 'register_screen.dart';
@@ -145,6 +146,40 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 child: const Text('Daftar Akun Pendaki'),
                               ),
+                              // Tombol Google hanya muncul bila client ID sudah
+                              // dipasang saat build — daripada menampilkan
+                              // tombol yang pasti gagal.
+                              if (kGoogleClientId.isNotEmpty) ...[
+                                const SizedBox(height: 18),
+                                Row(
+                                  children: [
+                                    const Expanded(child: Divider()),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                                      child: Text('atau',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade500)),
+                                    ),
+                                    const Expanded(child: Divider()),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                OutlinedButton.icon(
+                                  onPressed: state.busy
+                                      ? null
+                                      : () => context
+                                          .read<AuthBloc>()
+                                          .add(const AuthGoogleRequested()),
+                                  icon: const Text('G',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF4285F4),
+                                      )),
+                                  label: const Text('Masuk dengan Google'),
+                                ),
+                              ],
                             ],
                           ),
                         ),

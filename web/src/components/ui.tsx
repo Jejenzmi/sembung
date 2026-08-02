@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { BookingStatus } from '../lib/types'
 
 export function PageHeader({
@@ -134,24 +134,141 @@ export function Modal({
   children: ReactNode
   wide?: boolean
 }) {
+  const [tampil, setTampil] = useState(false)
+  const [geser, setGeser] = useState(0)
+  const seret = useRef<{ mulai: number; aktif: boolean }>({ mulai: 0, aktif: false })
+
+  // Dipasang setelah satu frame supaya transisi CSS benar-benar berjalan,
+  // bukan langsung melompat ke keadaan akhir.
+  useEffect(() => {
+    if (!open) {
+      setTampil(false)
+      setGeser(0)
+      return
+    }
+    const id = requestAnimationFrame(() => setTampil(true))
+    return () => cancelAnimationFrame(id)
+  }, [open])
+
+  // Tutup dengan tombol Escape, dan kunci gulir latar selama modal terbuka.
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && tutup()
+    document.addEventListener('keydown', onKey)
+    const sebelumnya = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = sebelumnya
+    }
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const tutup = () => {
+    setTampil(false)
+    // Beri waktu animasi keluar selesai sebelum melepas dari DOM.
+    setTimeout(onClose, 180)
+  }
+
+  const mulaiSeret = (y: number) => {
+    seret.current = { mulai: y, aktif: true }
+  }
+  const bergerak = (y: number) => {
+    if (!seret.current.aktif) return
+    setGeser(Math.max(0, y - seret.current.mulai))
+  }
+  const selesaiSeret = () => {
+    if (!seret.current.aktif) return
+    seret.current.aktif = false
+    // Ditarik cukup jauh berarti pengguna memang ingin menutup.
+    if (geser > 110) tutup()
+    else setGeser(0)
+  }
+
   if (!open) return null
+
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+      style={{
+        background: `rgba(15,23,42,${tampil ? 0.45 : 0})`,
+        transition: 'background 200ms ease',
+      }}
+      onClick={tutup}
+    >
       <div
-        className={`max-h-[88vh] w-full overflow-y-auto rounded-2xl bg-white p-6 shadow-xl ${
-          wide ? 'max-w-3xl' : 'max-w-lg'
+        className={`flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-2xl ${
+          wide ? 'sm:max-w-3xl' : 'sm:max-w-lg'
         }`}
+        style={{
+          transform: `translateY(${tampil ? geser : 40}px) scale(${tampil ? 1 : 0.98})`,
+          opacity: tampil ? 1 : 0,
+          transition: seret.current.aktif
+            ? 'none'
+            : 'transform 220ms cubic-bezier(.22,1,.36,1), opacity 180ms ease',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-          <button className="rounded-lg px-2 text-xl text-slate-400 hover:bg-slate-100" onClick={onClose}>
-            ×
-          </button>
+        {/* Gagang: area tarik untuk menutup, sekaligus penanda bahwa bisa ditarik. */}
+        <div
+          className="cursor-grab touch-none select-none active:cursor-grabbing"
+          onMouseDown={(e) => mulaiSeret(e.clientY)}
+          onMouseMove={(e) => bergerak(e.clientY)}
+          onMouseUp={selesaiSeret}
+          onMouseLeave={selesaiSeret}
+          onTouchStart={(e) => mulaiSeret(e.touches[0].clientY)}
+          onTouchMove={(e) => bergerak(e.touches[0].clientY)}
+          onTouchEnd={selesaiSeret}
+        >
+          <div className="flex justify-center pt-3">
+            <div className="h-1.5 w-11 rounded-full bg-slate-300" />
+          </div>
+          <div className="flex items-center justify-between px-6 pb-3 pt-3">
+            <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+            <button
+              className="rounded-lg px-2 text-xl leading-none text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              onClick={tutup}
+              aria-label="Tutup"
+            >
+              ×
+            </button>
+          </div>
         </div>
-        {children}
+        <div className="overflow-y-auto px-6 pb-6">{children}</div>
       </div>
     </div>
+  )
+}
+
+/** Konfirmasi tindakan dengan tampilan dan animasi yang sama seperti Modal. */
+export function ConfirmDialog({
+  open,
+  title,
+  message,
+  confirmLabel = 'Ya, lanjutkan',
+  danger,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean
+  title: string
+  message: string
+  confirmLabel?: string
+  danger?: boolean
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <Modal open={open} title={title} onClose={onCancel}>
+      <p className="text-sm leading-relaxed text-slate-600">{message}</p>
+      <div className="mt-6 flex justify-end gap-2">
+        <button className="btn-ghost" onClick={onCancel}>
+          Batal
+        </button>
+        <button className={danger ? 'btn-danger' : 'btn-primary'} onClick={onConfirm}>
+          {confirmLabel}
+        </button>
+      </div>
+    </Modal>
   )
 }
 

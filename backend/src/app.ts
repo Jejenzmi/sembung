@@ -20,6 +20,7 @@ import mediaRoutes from './routes/media';
 import notificationRoutes from './routes/notifications';
 import guideReviewRoutes from './routes/guide-reviews';
 import weatherRoutes from './routes/weather';
+import shalatRoutes from './routes/shalat';
 import { audit } from './middleware/audit';
 import { errorHandler, notFound } from './middleware/error';
 import { ok } from './lib/http';
@@ -70,6 +71,7 @@ export function createApp() {
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/guide-reviews', guideReviewRoutes);
   app.use('/api/weather', weatherRoutes);
+  app.use('/api/shalat', shalatRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

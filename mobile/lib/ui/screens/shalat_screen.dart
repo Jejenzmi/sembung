@@ -4,6 +4,9 @@ import 'package:geolocator/geolocator.dart';
 import '../../core/config.dart';
 import '../../core/formatters.dart';
 import '../../core/jadwal_shalat.dart';
+import '../../core/pengingat.dart';
+import '../../data/shalat_repository.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/navigasi.dart';
 import '../../core/theme.dart';
 import '../widgets/common.dart';
@@ -23,11 +26,87 @@ class _ShalatScreenState extends State<ShalatScreen> {
   double _mdpl = 420;
   bool _dariGps = false;
   DateTime _tanggal = DateTime.now();
+  JadwalHari? _jadwalHari;
+  bool _memuat = true;
+  bool _menyiapkanBekal = false;
+  bool _pengingatAktif = false;
+  int _jumlahTerjadwal = 0;
 
   @override
   void initState() {
     super.initState();
-    _ambilPosisi();
+    _ambilPosisi().then((_) => _muatJadwal());
+  }
+
+  Future<void> _muatJadwal() async {
+    setState(() => _memuat = true);
+    final hasil = await context.read<ShalatRepository>().hari(
+          _tanggal,
+          lintang: _lintang,
+          bujur: _bujur,
+          mdpl: _mdpl,
+        );
+    if (mounted) setState(() { _jadwalHari = hasil; _memuat = false; });
+  }
+
+  Future<void> _siapkanBekalOffline() async {
+    setState(() => _menyiapkanBekal = true);
+    final repo = context.read<ShalatRepository>();
+    var berhasil = 0;
+    // Bulan ini dan dua bulan berikutnya — cukup untuk musim pendakian.
+    for (var i = 0; i < 3; i++) {
+      final t = DateTime(_tanggal.year, _tanggal.month + i, 1);
+      if (await repo.unduhBulan(t.year, t.month)) berhasil++;
+    }
+    if (!mounted) return;
+    setState(() => _menyiapkanBekal = false);
+    showSnack(context,
+        berhasil > 0
+            ? '$berhasil bulan jadwal tersimpan — siap dipakai tanpa sinyal'
+            : 'Gagal mengunduh. Coba lagi saat jaringan tersedia',
+        error: berhasil == 0);
+    _muatJadwal();
+  }
+
+  /// Menjadwalkan azan tujuh hari ke depan sekaligus, supaya tetap berbunyi
+  /// walau aplikasi tidak dibuka selama di jalur.
+  Future<void> _aturPengingat(bool aktif) async {
+    if (!aktif) {
+      await Pengingat.batalkanRentang(1000, 2000);
+      if (!mounted) return;
+      setState(() { _pengingatAktif = false; _jumlahTerjadwal = 0; });
+      showSnack(context, 'Pengingat salat dimatikan');
+      return;
+    }
+
+    // Diambil sebelum await agar context tidak dipakai setelah jeda asinkron.
+    final repo = context.read<ShalatRepository>();
+
+    final diizinkan = await Pengingat.mintaIzin();
+    if (!diizinkan) {
+      if (mounted) {
+        showSnack(context, 'Izin notifikasi ditolak — aktifkan lewat pengaturan HP',
+            error: true);
+      }
+      return;
+    }
+
+    final peta = <DateTime, Map<String, String>>{};
+    for (var i = 0; i < 7; i++) {
+      final hari = DateTime.now().add(Duration(days: i));
+      final j = await repo.hari(hari, lintang: _lintang, bujur: _bujur, mdpl: _mdpl);
+      peta[DateTime(hari.year, hari.month, hari.day)] = j.waktu;
+    }
+
+    final n = await Pengingat.jadwalkanSalat(peta);
+    if (!mounted) return;
+    setState(() { _pengingatAktif = true; _jumlahTerjadwal = n; });
+    showSnack(context, '$n pengingat salat dijadwalkan untuk 7 hari ke depan');
+  }
+
+  void _gantiTanggal(DateTime baru) {
+    setState(() => _tanggal = baru);
+    _muatJadwal();
   }
 
   Future<void> _ambilPosisi() async {
@@ -51,12 +130,18 @@ class _ShalatScreenState extends State<ShalatScreen> {
     }
   }
 
-  Map<String, DateTime?> get _jadwal => JadwalShalat(
-        lintang: _lintang,
-        bujur: _bujur,
-        ketinggianMdpl: _mdpl,
-        tanggal: _tanggal,
-      ).hitung();
+  /// Jam "HH:mm" dari sumber resmi diubah menjadi DateTime hari itu.
+  Map<String, DateTime?> get _jadwal {
+    final h = _jadwalHari;
+    if (h == null) return const {};
+    return {
+      for (final e in h.waktu.entries)
+        e.key: e.value == '-'
+            ? null
+            : DateTime(_tanggal.year, _tanggal.month, _tanggal.day,
+                int.parse(e.value.split(':')[0]), int.parse(e.value.split(':')[1])),
+    };
+  }
 
   /// Waktu salat berikutnya hari ini, dipakai untuk hitung mundur.
   ({String nama, DateTime waktu})? get _berikutnya {
@@ -95,13 +180,20 @@ class _ShalatScreenState extends State<ShalatScreen> {
     final berikut = _berikutnya;
     final kiblat = JadwalShalat.arahKiblat(_lintang, _bujur);
 
+    if (_memuat && _jadwalHari == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Jadwal Salat')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Jadwal Salat'),
         actions: [
           IconButton(
             tooltip: 'Perbarui lokasi',
-            onPressed: _ambilPosisi,
+            onPressed: () => _ambilPosisi().then((_) => _muatJadwal()),
             icon: const Icon(Icons.my_location),
           ),
         ],
@@ -141,8 +233,7 @@ class _ShalatScreenState extends State<ShalatScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => setState(
-                      () => _tanggal = _tanggal.subtract(const Duration(days: 1))),
+                  onPressed: () => _gantiTanggal(_tanggal.subtract(const Duration(days: 1))),
                   icon: const Icon(Icons.chevron_left, size: 18),
                   label: const Text('Kemarin'),
                 ),
@@ -150,7 +241,7 @@ class _ShalatScreenState extends State<ShalatScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => setState(() => _tanggal = DateTime.now()),
+                  onPressed: () => _gantiTanggal(DateTime.now()),
                   icon: const Icon(Icons.today, size: 18),
                   label: const Text('Hari ini'),
                 ),
@@ -158,8 +249,7 @@ class _ShalatScreenState extends State<ShalatScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () =>
-                      setState(() => _tanggal = _tanggal.add(const Duration(days: 1))),
+                  onPressed: () => _gantiTanggal(_tanggal.add(const Duration(days: 1))),
                   icon: const Icon(Icons.chevron_right, size: 18),
                   label: const Text('Besok'),
                 ),
@@ -229,12 +319,75 @@ class _ShalatScreenState extends State<ShalatScreen> {
           ),
 
           const SizedBox(height: 14),
-          const Text(
-            'Dihitung di perangkat dari posisi matahari — tetap berfungsi tanpa sinyal. '
-            'Sudut fajar 20° dan isya 18° mengikuti ketetapan Kementerian Agama, '
-            'dengan ihtiyath 2 menit. Ketinggian tempat diperhitungkan, sehingga di '
-            'puncak magrib tampak beberapa menit lebih lambat daripada di basecamp.',
-            style: TextStyle(fontSize: 11.5, color: AppColors.muted, height: 1.5),
+          AppCard(
+            child: SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              value: _pengingatAktif,
+              activeColor: AppColors.moss,
+              onChanged: _aturPengingat,
+              title: const Text('Pengingat Waktu Salat',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
+              subtitle: Text(
+                _pengingatAktif
+                    ? '$_jumlahTerjadwal pengingat terjadwal — tetap berbunyi tanpa sinyal'
+                    : 'Jadwalkan azan 7 hari ke depan langsung di perangkat',
+                style: const TextStyle(fontSize: 12, color: AppColors.muted),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 14),
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      _jadwalHari?.sumber == SumberJadwal.hitungLokal
+                          ? Icons.calculate_outlined
+                          : Icons.verified_outlined,
+                      size: 18,
+                      color: _jadwalHari?.sumber == SumberJadwal.hitungLokal
+                          ? AppColors.ember
+                          : AppColors.moss,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Sumber: ${_jadwalHari?.labelSumber ?? '—'}'
+                        '${_jadwalHari != null && _jadwalHari!.sumber != SumberJadwal.hitungLokal ? ' · ${_jadwalHari!.lokasi}' : ''}',
+                        style: const TextStyle(
+                            fontSize: 12.5, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _jadwalHari?.sumber == SumberJadwal.hitungLokal
+                      ? 'Jadwal resmi belum tersimpan dan jaringan tidak tersedia, '
+                        'sehingga ditampilkan hasil perhitungan posisi matahari '
+                        '(selisih terhadap jadwal Kemenag di bawah 2 menit).'
+                      : 'Jadwal resmi Kementerian Agama RI. Simpan untuk dipakai '
+                        'di jalur pendakian yang tanpa sinyal.',
+                  style: const TextStyle(
+                      fontSize: 11.5, color: AppColors.muted, height: 1.5),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _menyiapkanBekal ? null : _siapkanBekalOffline,
+                  icon: _menyiapkanBekal
+                      ? const SizedBox(
+                          height: 16, width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.download_for_offline_outlined, size: 18),
+                  label: Text(_menyiapkanBekal
+                      ? 'Mengunduh…'
+                      : 'Simpan 3 Bulan untuk Offline'),
+                ),
+              ],
+            ),
           ),
         ],
       ),

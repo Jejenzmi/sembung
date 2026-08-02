@@ -81,10 +81,13 @@ cd mobile && flutter run           # aplikasi pendaki
   justru di pos gerbang sinyal sering lemah.
 * **Perjalanan** — booking aktif & riwayat, pembatalan, ulasan setelah selesai.
 * **Informasi** — sejarah lokal Sanggabuana, tata tertib, cuaca, agenda event.
-* **Jadwal Salat** — dihitung **di perangkat** dari posisi matahari, jadi tetap
-  akurat tanpa sinyal. Sudut fajar 20° / isya 18° (Kemenag) dengan ihtiyath 2 menit,
-  serta koreksi ketinggian tempat: di puncak 1.180 mdpl magrib beberapa menit lebih
-  lambat daripada di basecamp. Dilengkapi arah kiblat dan hitung mundur waktu berikutnya.
+* **Jadwal Salat** — memakai **jadwal resmi Kementerian Agama RI** (api.myquran.com,
+  KAB. PURWAKARTA), dengan Aladhan metode 20 sebagai cadangan. Diunduh sebulan penuh
+  dan disimpan di perangkat, sehingga tetap tersedia di jalur tanpa sinyal. Bila belum
+  ada satu pun jadwal tersimpan, aplikasi memakai perhitungan posisi matahari sebagai
+  jaring pengaman terakhir — sumbernya selalu ditampilkan terus terang, dan selisihnya
+  terhadap jadwal Kemenag terukur di bawah 2 menit. Dilengkapi arah kiblat, hitung
+  mundur waktu berikutnya, dan pengingat azan.
 * **Kompas Jalur** — mawar arah dengan indikator kalibrasi sensor dan panduan gerak
   angka delapan, penunjuk ke kiblat maupun ke titik jalur mana pun beserta jaraknya.
   Arah dikoreksi ke **utara sejati** (deklinasi Jawa Barat +0,7°) agar sejalan dengan peta.
@@ -212,6 +215,31 @@ Belum ada versi yang bebas keduanya. Kami tetap di versi terbaru karena aplikasi
 `loader`/`action`, tanpa RSC — sudah diperiksa dan hasilnya nol kemunculan. Jalur yang
 rentan tidak pernah dijalankan, sedangkan XSS open-redirect pada versi lama justru
 relevan untuk SPA. Begitu ada rilis yang menutup keduanya, cukup `npm i react-router-dom@latest`.
+
+## Masuk dengan Google & push notification
+
+Keduanya sudah terpasang penuh di server dan aplikasi; tinggal mengisi kredensial.
+
+| Yang dibutuhkan | Ditaruh di | Selama kosong |
+|---|---|---|
+| OAuth Client ID (**Web application**) | `deploy/.env` → `GOOGLE_CLIENT_ID`, dan saat build APK `--dart-define=GOOGLE_CLIENT_ID=...` | Endpoint menjawab `503` jelas; tombol Google **disembunyikan** di aplikasi |
+| JSON akun layanan Firebase | `deploy/.env` → `FIREBASE_SERVICE_ACCOUNT` (JSON mentah atau base64) | Pesan tetap masuk kotak masuk; alasan push dilewati dicatat pada notifikasi |
+
+Data yang diperlukan saat mendaftarkan aplikasi Android:
+
+```
+package name : id.sembung.sembung_explorer
+SHA-1        : 09:6C:E0:21:47:90:86:68:9A:06:64:C2:73:E6:61:BE:9C:D5:72:A0
+SHA-256      : 6E:0D:58:07:B5:BD:CF:E8:68:5C:8E:08:69:A4:A8:A0:32:39:6A:67:48:52:8B:9E:35:B2:71:B3:A2:6A:70:14
+```
+
+Push memakai **FCM HTTP v1** dan menandatangani JWT akun layanan sendiri, tanpa SDK
+tambahan. Token perangkat yang ditolak FCM (aplikasi dicopot) dibersihkan otomatis.
+
+**Pengingat lokal sudah aktif sekarang, tanpa kredensial apa pun:** azan lima waktu
+dijadwalkan 7 hari ke depan di perangkat, dan pengingat H-1 pendakian berisi daftar
+barang wajib. Justru inilah yang paling dibutuhkan di jalur — pengingat lokal tetap
+berbunyi tanpa sinyal, sedangkan push memerlukan jaringan.
 
 ## Uji otomatis
 

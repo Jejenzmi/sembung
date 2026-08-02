@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { Role } from '@prisma/client';
@@ -6,6 +7,7 @@ import { prisma } from '../lib/prisma';
 import { AppError, created, ok, wrap } from '../lib/http';
 import { authenticate, signToken } from '../middleware/auth';
 import { rateLimit, resetLimit } from '../middleware/ratelimit';
+import { OAuth2Client } from 'google-auth-library';
 
 const router = Router();
 
@@ -101,6 +103,76 @@ router.post(
       user: safe,
       token: signToken({ sub: user.id, role: user.role, name: user.name }),
     }, 'Login berhasil');
+  })
+);
+
+/**
+ * Masuk dengan Google. Aplikasi mengirim ID token hasil Google Sign-In, dan
+ * server memverifikasinya langsung ke Google — token yang tidak ditujukan untuk
+ * aplikasi ini ditolak, sehingga token curian dari aplikasi lain tidak berlaku.
+ */
+router.post(
+  '/google',
+  rateLimit({ windowMs: 10 * 60_000, max: 20, message: 'Terlalu banyak percobaan masuk' }),
+  wrap(async (req, res) => {
+    const { idToken } = z.object({ idToken: z.string().min(20) }).parse(req.body);
+
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId)
+      throw new AppError('Masuk dengan Google belum dikonfigurasi di server', 503);
+
+    const client = new OAuth2Client(clientId);
+    let payload;
+    try {
+      const tiket = await client.verifyIdToken({ idToken, audience: clientId });
+      payload = tiket.getPayload();
+    } catch {
+      throw new AppError('Token Google tidak sah', 401);
+    }
+    if (!payload?.sub || !payload.email)
+      throw new AppError('Token Google tidak memuat identitas yang dibutuhkan', 401);
+    if (payload.email_verified === false)
+      throw new AppError('Email Google Anda belum terverifikasi', 403);
+
+    // Tautkan ke akun yang sudah ada bila emailnya cocok, supaya pendaki yang
+    // pernah mendaftar manual tidak berakhir dengan dua akun terpisah.
+    let user = await prisma.user.findFirst({
+      where: { OR: [{ googleId: payload.sub }, { email: payload.email }] },
+    });
+
+    if (user) {
+      if (!user.isActive) throw new AppError('Akun dinonaktifkan', 403);
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          googleId: payload.sub,
+          avatarUrl: user.avatarUrl ?? payload.picture,
+          lastLoginAt: new Date(),
+        },
+      });
+    } else {
+      user = await prisma.user.create({
+        data: {
+          name: payload.name ?? payload.email.split('@')[0],
+          email: payload.email,
+          googleId: payload.sub,
+          avatarUrl: payload.picture,
+          // Nomor sementara; pendaki wajib melengkapinya sebelum memesan.
+          phone: `google:${payload.sub}`,
+          passwordHash: await bcrypt.hash(crypto.randomUUID(), 10),
+          role: Role.VISITOR,
+          lastLoginAt: new Date(),
+        },
+      });
+    }
+
+    const { passwordHash, ...safe } = user;
+    return ok(res, {
+      user: safe,
+      token: signToken({ sub: user.id, role: user.role, name: user.name }),
+      // Aplikasi memakai penanda ini untuk meminta nomor HP sebelum memesan.
+      perluLengkapiProfil: user.phone.startsWith('google:'),
+    }, 'Masuk dengan Google berhasil');
   })
 );
 

@@ -4,6 +4,10 @@
 # diulang beberapa kali agar aman terhadap jeda kesiapan.
 set -e
 
+# Catatan: sengaja BUKAN --accept-data-loss. Bila Prisma menolak karena suatu
+# perubahan berisiko (mis. menambah unique constraint pada kolom yang mungkin
+# punya nilai ganda), biarkan gagal dan tangani manual lewat SQL setelah
+# memeriksa datanya — jangan biarkan perubahan destruktif lolos diam-diam.
 echo "→ sinkronisasi skema"
 i=1
 until npx prisma db push --skip-generate; do
