@@ -14,6 +14,13 @@ green() { printf "\033[0;32m%s\033[0m\n" "$1"; }
   exit 1
 }
 
+# Client ID dibaca dari deploy/.env, bukan ditulis di skrip — supaya tidak
+# ikut masuk repositori.
+set -a; . "$ROOT/deploy/.env"; set +a
+if [ -z "${GOOGLE_CLIENT_ID:-}" ]; then
+  echo "! GOOGLE_CLIENT_ID kosong — tombol Masuk dengan Google akan disembunyikan"
+fi
+
 mkdir -p "$ROOT/.pub-cache" "$ROOT/.gradle" "$ROOT/deploy/public"
 
 # Sisa build lama membuat mergeReleaseResources gagal setelah resource baru
@@ -28,7 +35,9 @@ docker run --rm \
   -v "$ROOT/.pub-cache":/root/.pub-cache \
   -v "$ROOT/.gradle":/root/.gradle \
   -w /app "$FLUTTER_IMAGE" \
-  bash -lc "flutter pub get && flutter build apk --release --dart-define=API_URL=$API_URL"
+  bash -lc "flutter pub get && flutter build apk --release \
+    --dart-define=API_URL=$API_URL \
+    --dart-define=GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}"
 
 green "→ memasang ke situs"
 cp "$ROOT/mobile/build/app/outputs/flutter-apk/app-release.apk" \
