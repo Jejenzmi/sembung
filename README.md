@@ -81,6 +81,13 @@ cd mobile && flutter run           # aplikasi pendaki
   justru di pos gerbang sinyal sering lemah.
 * **Perjalanan** — booking aktif & riwayat, pembatalan, ulasan setelah selesai.
 * **Informasi** — sejarah lokal Sanggabuana, tata tertib, cuaca, agenda event.
+* **Jadwal Salat** — dihitung **di perangkat** dari posisi matahari, jadi tetap
+  akurat tanpa sinyal. Sudut fajar 20° / isya 18° (Kemenag) dengan ihtiyath 2 menit,
+  serta koreksi ketinggian tempat: di puncak 1.180 mdpl magrib beberapa menit lebih
+  lambat daripada di basecamp. Dilengkapi arah kiblat dan hitung mundur waktu berikutnya.
+* **Kompas Jalur** — mawar arah dengan indikator kalibrasi sensor dan panduan gerak
+  angka delapan, penunjuk ke kiblat maupun ke titik jalur mana pun beserta jaraknya.
+  Arah dikoreksi ke **utara sejati** (deklinasi Jawa Barat +0,7°) agar sejalan dengan peta.
 
 Bloc yang dipakai: `AuthBloc`, `HomeBloc`, `BookingBloc`, `TripsBloc`, `SosBloc`, `MapBloc`.
 Setiap bloc memakai event/state ber-`Equatable` dan repository terpisah
@@ -178,6 +185,17 @@ Rentang default adalah bulan berjalan; atur dengan `?from=&to=`.
 > dengan parameter bertimezone menggeser hasil sebesar offset server — bug ini sempat
 > membuat laporan harian kosong padahal ringkasannya berisi.
 
+## Repositori
+
+Sumber tersimpan di **https://github.com/Jejenzmi/sembung**, di-push dari VPS memakai
+deploy key (`~/.ssh/sembung_github`). Rahasia produksi — `deploy/.env`, keystore rilis,
+dan `key.properties` — sengaja **tidak** ikut; semuanya di-`.gitignore` dan hanya ada
+di server serta di arsip MinIO.
+
+```bash
+cd /root/sembung && git push origin master
+```
+
 ## Uji otomatis
 
 ```bash
@@ -185,7 +203,17 @@ deploy/ops.sh test          # seluruh berkas
 deploy/ops.sh test tests/voucher.test.ts
 ```
 
-**83 kasus, 12 berkas.** Berjalan di kontainer sekali pakai terhadap database
+**Backend: 83 kasus, 12 berkas.** Ditambah **24 uji Dart** untuk perhitungan
+jadwal salat, arah kiblat, dan navigasi kompas:
+
+```bash
+docker run --rm -v /root/sembung/mobile:/app -v /root/sembung/.pub-cache:/root/.pub-cache \
+  -w /app ghcr.io/cirruslabs/flutter:3.19.6 bash -lc "flutter test"
+```
+
+Jadwal salat divalidasi silang terhadap rujukan Kemenag (Aladhan metode 20) —
+selisihnya persis sebesar ihtiyath 2 menit yang memang diterapkan.
+ Berjalan di kontainer sekali pakai terhadap database
 `sembung_test` yang terpisah. `tests/setup.ts` **menolak jalan** bila `DATABASE_URL`
 tidak menunjuk database uji — sudah dibuktikan dengan sengaja mengarahkannya ke
 database produksi.
