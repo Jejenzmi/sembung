@@ -7,6 +7,7 @@
 #   ./ops.sh backup    dump database sekarang juga
 #   ./ops.sh apk [url] bangun ulang APK
 #   ./ops.sh shell     psql ke database
+#   ./ops.sh test      jalankan uji otomatis (database uji terpisah)
 set -e
 
 ROOT=/root/sembung
@@ -42,6 +43,9 @@ case "${1:-status}" in
     ;;
   apk)
     "$DEPLOY/build-apk-vps.sh" "${2:-https://sembung.gokar.id}"
+    ;;
+  test)
+    "$DEPLOY/run-tests.sh" "${@:2}"
     ;;
   shell)
     docker compose exec postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"

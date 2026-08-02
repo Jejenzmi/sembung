@@ -70,6 +70,12 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_DB: ${POSTGRES_DB}
+      MINIO_URL: ${MINIO_URL}
+      MINIO_USER: ${MINIO_USER}
+      MINIO_PASSWORD: ${MINIO_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     volumes:
       - ./backups:/backups
       - ./backup.sh:/backup.sh:ro
@@ -77,6 +83,8 @@ services:
       - ./.env:/secrets/deploy.env:ro
       - ../mobile/android/sembung-release.jks:/secrets/sembung-release.jks:ro
       - ../mobile/android/key.properties:/secrets/key.properties:ro
+      # mc statis dari host, supaya image backup tidak perlu diubah.
+      - /usr/local/bin/mc:/usr/local/bin/mc:ro
     entrypoint: ['sh', '/backup.sh']
 
 volumes:
