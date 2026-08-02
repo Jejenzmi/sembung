@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
+  body {
+    @apply bg-slate-100 text-slate-800 antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-moss-600 text-white hover:bg-moss-700;
+  }
+  .btn-ghost {
+    @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200;
+  }
+  .btn-danger {
+    @apply btn bg-rose-600 text-white hover:bg-rose-700;
+  }
+  .input {
+    @apply w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none transition focus:border-moss-500 focus:ring-2 focus:ring-moss-100;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+  .th {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+  .td {
+    @apply px-4 py-3 text-sm text-slate-700;
+  }
+  .badge {
+    @apply inline-flex items-center rounded-lg px-2 py-1 text-xs font-semibold;
+  }
+}
+
+/* Leaflet inherits the page font so map labels match the UI. */
+.leaflet-container {
+  font-family: inherit;
+  border-radius: 1rem;
+}
+
+@keyframes sos-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(225, 29, 72, 0);
+  }
+}
+.sos-pulse {
+  animation: sos-pulse 1.6s ease-out infinite;
+}

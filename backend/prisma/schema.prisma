@@ -1,0 +1,495 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  OFFICER
+  RANGER
+  VISITOR
+}
+
+enum Difficulty {
+  EASY
+  MODERATE
+  HARD
+  EXTREME
+}
+
+enum TrailStatus {
+  OPEN
+  LIMITED
+  CLOSED
+}
+
+enum PointType {
+  BASECAMP
+  POST
+  WATER_SOURCE
+  CAMPING_GROUND
+  PHOTO_SPOT
+  SUMMIT
+  JUNCTION
+  DANGER
+  SHELTER
+  CLIFF
+}
+
+enum TicketCategory {
+  ENTRY
+  CAMPING
+  PARKING_MOTOR
+  PARKING_CAR
+  INSURANCE
+}
+
+enum GuideType {
+  GUIDE
+  PORTER
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  PAID
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum ItemRef {
+  TICKET
+  RENTAL
+  GUIDE
+}
+
+enum PaymentMethod {
+  QRIS
+  VA_BCA
+  VA_BNI
+  EWALLET
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum CheckType {
+  CHECK_IN
+  CHECK_OUT
+}
+
+enum SosType {
+  INJURY
+  LOST
+  MEDICAL
+  WEATHER
+  FIRE
+  OTHER
+}
+
+enum SosStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESCUING
+  RESOLVED
+  FALSE_ALARM
+}
+
+enum ContentCategory {
+  NEWS
+  WEATHER
+  EVENT
+  HISTORY
+  REGULATION
+}
+
+enum NotifChannel {
+  WHATSAPP
+  WEBHOOK
+  EMAIL
+  PUSH
+}
+
+enum NotifStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PAID
+}
+
+model User {
+  id               String    @id @default(uuid())
+  name             String
+  username         String?   @unique
+  email            String?   @unique
+  phone            String    @unique
+  passwordHash     String
+  role             Role      @default(VISITOR)
+  nik              String?
+  address          String?
+  emergencyName    String?
+  emergencyPhone   String?
+  avatarUrl        String?
+  isActive         Boolean   @default(true)
+  lastLoginAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  bookings         Booking[]
+  sosAlerts        SosAlert[]      @relation("SosReporter")
+  acknowledgedSos  SosAlert[]      @relation("SosHandler")
+  checkLogs        CheckLog[]
+  trackPings       TrackPing[]
+  guideProfile     Guide?
+  reviews          Review[]
+  refundsRequested Refund[]        @relation("RefundRequester")
+  refundsProcessed Refund[]        @relation("RefundProcessor")
+  auditLogs        AuditLog[]
+}
+
+model Trail {
+  id              String      @id @default(uuid())
+  code            String      @unique
+  name            String
+  slug            String      @unique
+  difficulty      Difficulty  @default(MODERATE)
+  status          TrailStatus @default(OPEN)
+  distanceKm      Float
+  elevationGainM  Int
+  summitElevM     Int
+  estimatedHours  Float
+  dailyQuota      Int         @default(100)
+  description     String?
+  imageUrl        String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  points          TrailPoint[]
+  gates           Gate[]
+  bookings        Booking[]
+  reviews         Review[]
+}
+
+model TrailPoint {
+  id          String    @id @default(uuid())
+  trailId     String
+  trail       Trail     @relation(fields: [trailId], references: [id], onDelete: Cascade)
+  name        String
+  type        PointType
+  lat         Float
+  lng         Float
+  elevationM  Int       @default(0)
+  sequence    Int       @default(0)
+  description String?
+  createdAt   DateTime  @default(now())
+
+  @@index([trailId, sequence])
+}
+
+model Gate {
+  id        String     @id @default(uuid())
+  code      String     @unique
+  name      String
+  lat       Float
+  lng       Float
+  trailId   String?
+  trail     Trail?     @relation(fields: [trailId], references: [id])
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+
+  checkLogs CheckLog[]
+}
+
+model TicketType {
+  id          String         @id @default(uuid())
+  code        String         @unique
+  name        String
+  category    TicketCategory
+  price       Int
+  description String?
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model RentalItem {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  name         String
+  category     String
+  pricePerDay  Int
+  stock        Int      @default(0)
+  imageUrl     String?
+  description  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Guide {
+  id              String    @id @default(uuid())
+  userId          String?   @unique
+  user            User?     @relation(fields: [userId], references: [id])
+  name            String
+  phone           String
+  type            GuideType @default(GUIDE)
+  ratePerDay      Int
+  experienceYears Int       @default(0)
+  rating          Float     @default(5)
+  bio             String?
+  photoUrl        String?
+  isAvailable     Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Booking {
+  id            String        @id @default(uuid())
+  code          String        @unique
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  trailId       String
+  trail         Trail         @relation(fields: [trailId], references: [id])
+  startDate     DateTime      @db.Date
+  endDate       DateTime      @db.Date
+  totalPersons  Int
+  status        BookingStatus @default(PENDING_PAYMENT)
+  subtotal      Int           @default(0)
+  serviceFee    Int           @default(0)
+  total         Int           @default(0)
+  qrToken       String        @unique
+  notes         String?
+  checkedInAt   DateTime?
+  checkedOutAt  DateTime?
+  /// Batas waktu pembayaran; lewat ini booking dilepas oleh scheduler.
+  expiresAt     DateTime?
+  /// Penanda agar peringatan "belum turun" tidak dikirim berulang.
+  overdueAlertedAt DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  items         BookingItem[]
+  members       BookingMember[]
+  payments      Payment[]
+  checkLogs     CheckLog[]
+  sosAlerts     SosAlert[]
+  trackPings    TrackPing[]
+  refunds       Refund[]
+
+  @@index([startDate, status])
+  @@index([userId])
+}
+
+model BookingItem {
+  id        String  @id @default(uuid())
+  bookingId String
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  refType   ItemRef
+  refId     String
+  name      String
+  qty       Int     @default(1)
+  days      Int     @default(1)
+  unitPrice Int
+  amount    Int
+}
+
+model BookingMember {
+  id             String  @id @default(uuid())
+  bookingId      String
+  booking        Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  name           String
+  nik            String?
+  phone          String?
+  age            Int?
+  gender         String?
+  emergencyName  String?
+  emergencyPhone String?
+  isLeader       Boolean @default(false)
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  bookingId String
+  booking   Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  method    PaymentMethod
+  amount    Int
+  status    PaymentStatus @default(PENDING)
+  reference String        @unique
+  qrisPayload String?
+  vaNumber  String?
+  expiresAt DateTime?
+  paidAt    DateTime?
+  createdAt DateTime      @default(now())
+}
+
+model CheckLog {
+  id          String    @id @default(uuid())
+  bookingId   String
+  booking     Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  gateId      String
+  gate        Gate      @relation(fields: [gateId], references: [id])
+  officerId   String
+  officer     User      @relation(fields: [officerId], references: [id])
+  type        CheckType
+  personCount Int       @default(0)
+  /// Berat sampah yang dibawa turun (kg), ditimbang petugas saat check-out.
+  wasteKg     Float?
+  notes       String?
+  at          DateTime  @default(now())
+
+  @@index([bookingId])
+  @@index([at])
+}
+
+model Refund {
+  id            String       @id @default(uuid())
+  code          String       @unique
+  bookingId     String
+  booking       Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  amount        Int
+  reason        String
+  status        RefundStatus @default(REQUESTED)
+  method        String?
+  accountName   String?
+  accountNumber String?
+  note          String?
+  requestedById String
+  requestedBy   User         @relation("RefundRequester", fields: [requestedById], references: [id])
+  processedById String?
+  processedBy   User?        @relation("RefundProcessor", fields: [processedById], references: [id])
+  processedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([status, createdAt])
+}
+
+/// Jejak setiap perubahan data oleh staf — siapa, kapan, dari mana.
+model AuditLog {
+  id       String   @id @default(uuid())
+  userId   String?
+  user     User?    @relation(fields: [userId], references: [id])
+  userName String?
+  role     String?
+  method   String
+  path     String
+  status   Int
+  payload  String?
+  ip       String?
+  at       DateTime @default(now())
+
+  @@index([at])
+  @@index([userId])
+}
+
+model SosAlert {
+  id               String    @id @default(uuid())
+  code             String    @unique
+  userId           String
+  user             User      @relation("SosReporter", fields: [userId], references: [id])
+  bookingId        String?
+  booking          Booking?  @relation(fields: [bookingId], references: [id])
+  type             SosType   @default(OTHER)
+  status           SosStatus @default(OPEN)
+  lat              Float
+  lng              Float
+  elevationM       Int?
+  accuracy         Float?
+  message          String?
+  handlerId        String?
+  handler          User?     @relation("SosHandler", fields: [handlerId], references: [id])
+  acknowledgedAt   DateTime?
+  resolvedAt       DateTime?
+  resolutionNote   String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model TrackPing {
+  id         String   @id @default(uuid())
+  bookingId  String?
+  booking    Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  lat        Float
+  lng        Float
+  elevationM Int?
+  accuracy   Float?
+  battery    Int?
+  at         DateTime @default(now())
+
+  @@index([bookingId, at])
+}
+
+model Content {
+  id          String          @id @default(uuid())
+  title       String
+  slug        String          @unique
+  category    ContentCategory @default(NEWS)
+  excerpt     String?
+  body        String
+  imageUrl    String?
+  isPublished Boolean         @default(true)
+  publishedAt DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  trailId   String
+  trail     Trail    @relation(fields: [trailId], references: [id], onDelete: Cascade)
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, trailId])
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+/// Jejak pengiriman notifikasi keluar (SOS, booking kedaluwarsa, rombongan telat
+/// turun). Disimpan walau kanalnya belum dikonfigurasi, supaya pengelola tetap
+/// bisa melihat apa yang seharusnya terkirim.
+model Notification {
+  id        String       @id @default(uuid())
+  channel   NotifChannel
+  target    String
+  subject   String?
+  body      String
+  status    NotifStatus  @default(PENDING)
+  error     String?
+  refType   String?
+  refId     String?
+  attempts  Int          @default(0)
+  sentAt    DateTime?
+  createdAt DateTime     @default(now())
+
+  @@index([refType, refId])
+  @@index([status, createdAt])
+}

@@ -1,0 +1,30 @@
+node_modules/
+dist/
+build/
+*.log
+.DS_Store
+
+# ── rahasia: JANGAN PERNAH masuk repositori ───────────────────────────────
+deploy/.env
+backend/.env
+web/.env
+.env.local
+# kunci penandatanganan rilis; hilang = aplikasi tak bisa diperbarui di Play
+mobile/android/key.properties
+mobile/android/*.jks
+
+# ── keluaran & cadangan ───────────────────────────────────────────────────
+deploy/backups/
+deploy/public/*.apk
+
+# ── cache build di server ─────────────────────────────────────────────────
+.pub-cache/
+.gradle/
+mobile/android/.gradle/
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/android/local.properties
+mobile/ios/Pods/
+mobile/ios/.symlinks/
