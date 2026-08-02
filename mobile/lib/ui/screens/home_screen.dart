@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/home/home_bloc.dart';
 import '../../core/formatters.dart';
+import '../../core/kisi.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../widgets/common.dart';
@@ -32,6 +33,11 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       body: RefreshIndicator(
+        // Digeser ke bawah hero: pada posisi bawaan, lingkaran indikator
+        // muncul tepat menimpa judul dan terlihat seperti kerusakan.
+        displacement: 120,
+        color: AppColors.moss,
+        backgroundColor: Colors.white,
         onRefresh: () async {
           context.read<HomeBloc>().add(const HomeRefreshed());
           await context.read<HomeBloc>().stream.firstWhere(
@@ -174,32 +180,43 @@ class _Hero extends StatelessWidget {
                         style: const TextStyle(
                             color: Color(0xFFC2D8BD), fontSize: 13)),
                     const SizedBox(height: 3),
-                    const Text('Gunung Sembung',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 27,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
-                        )),
-                    const SizedBox(height: 2),
-                    const Text('Sanggabuana · Purwakarta, Jawa Barat',
+                    const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text('Gunung Sembung',
+                          maxLines: 1,
+                          softWrap: false,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 27,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                            height: 1.1,
+                          )),
+                    ),
+                    const SizedBox(height: 3),
+                    const Text('Sanggabuana · Purwakarta',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: Color(0x99E0EBDD), fontSize: 11.5)),
                   ],
                 ),
               ),
-              if (kini != null)
+              if (kini != null) ...[
                 Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(kini.lambang, style: const TextStyle(fontSize: 30)),
+                    Text(kini.lambang, style: const TextStyle(fontSize: 25)),
+                    const SizedBox(height: 2),
                     Text('${kini.suhu}°C',
                         style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 18,
+                            fontSize: 15,
                             fontWeight: FontWeight.w800)),
                   ],
                 ),
-              const SizedBox(width: 6),
+                const SizedBox(width: 8),
+              ],
               _TombolKotakMasuk(),
             ],
           ),
@@ -368,21 +385,23 @@ class _QuickActions extends StatelessWidget {
   final void Function(int) onOpenTab;
 
   @override
+  @override
   Widget build(BuildContext context) {
     // -1 berarti membuka layar tersendiri, bukan berpindah tab.
     final items = <(String, String, int, Widget?)>[
-      ('🗺️', 'Peta Offline', 1, null),
-      ('🎟️', 'Perjalanan', 2, null),
-      ('🚨', 'Tombol SOS', 3, null),
+      ('🗺️', 'Peta', 1, null),
+      ('🎟️', 'Trip', 2, null),
+      ('🚨', 'SOS', 3, null),
       ('🧭', 'Kompas', -1, const KompasScreen()),
-      ('🕌', 'Jadwal Salat', -1, const ShalatScreen()),
+      ('🕌', 'Salat', -1, const ShalatScreen()),
       ('🍜', 'Makan', -1, const WarungScreen()),
       ('📶', 'Sinyal', -1, const SinyalScreen()),
       ('🏠', 'Menginap', -1, const PenginapanScreen()),
+      ('👤', 'Profil', 4, null),
     ];
 
     Widget kartu((String, String, int, Widget?) item) => AppCard(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 14),
           onTap: () {
             if (item.$4 != null) {
               Navigator.of(context)
@@ -393,28 +412,40 @@ class _QuickActions extends StatelessWidget {
           },
           child: Column(
             children: [
-              Text(item.$1, style: const TextStyle(fontSize: 24)),
-              const SizedBox(height: 8),
+              Text(item.$1, style: const TextStyle(fontSize: 23)),
+              const SizedBox(height: 7),
               Text(
                 item.$2,
                 textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
               ),
             ],
           ),
         );
 
+    // Pembagian baris dipusatkan di bagiPerBaris() yang sudah teruji, supaya
+    // menambah atau mengurangi pintasan tidak lagi bisa melewati batas indeks.
+    const perBaris = 3;
+    final baris = bagiPerBaris(items, perBaris);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
       child: Column(
         children: [
-          for (var baris = 0; baris < 3; baris++) ...[
-            if (baris > 0) const SizedBox(height: 10),
+          for (var r = 0; r < baris.length; r++) ...[
+            if (r > 0) const SizedBox(height: 10),
             Row(
               children: [
-                for (var k = 0; k < 3; k++) ...[
+                for (var k = 0; k < perBaris; k++) ...[
                   if (k > 0) const SizedBox(width: 10),
-                  Expanded(child: kartu(items[baris * 3 + k])),
+                  // Sel kosong tetap memakai ruang agar kisi tidak melar.
+                  Expanded(
+                    child: k < baris[r].length
+                        ? kartu(baris[r][k])
+                        : const SizedBox.shrink(),
+                  ),
                 ],
               ],
             ),
